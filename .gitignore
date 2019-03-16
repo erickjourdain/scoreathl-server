@@ -1,6 +1,12 @@
 node_modules
 /dist
 /public
+/database
+
+# config files
+/src/config/development.json
+/src/config/production.json
+
 
 # local env files
 .env

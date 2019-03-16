@@ -14,40 +14,6 @@ var config = convict({
     env: 'PORT',
     arg: 'port'
   },
-  mongo: {
-    host: {
-      doc: 'Hôte hébergeant la base de données.',
-      format: 'url',
-      default: 'localhost'
-    },
-    port: {
-      doc: `Le port d'accès de la base de données.`,
-      format: 'port',
-      default: 15434
-    },
-    name: {
-      doc: `Le nom de la base de données.`,
-      format: 'String',
-      default: 'database'
-    },
-    user: {
-      doc: `Le nom de l'utilisateur de la base de données.`,
-      format: 'String',
-      default: 'user'
-    },
-    pwd: {
-      doc: `Le mot de passe pour accèder à la base de données.`,
-      format: 'String',
-      default: 'pwd'
-    },
-    options: {
-      doc: `Object contenant les options de la base de données.`,
-      format: 'Object',
-      default: {
-        "useNewUrlParser": true
-      }
-    }
-  },
   secret: {
     master: {
       doc: `Clef principale de l'application.`,
@@ -58,6 +24,40 @@ var config = convict({
       doc: `Clef de chiffrage des tokens.`,
       format: 'String',
       default: 'jwt_key'
+    }
+  },
+  sqlite: {
+    path: {
+      doc: 'Répertoire de la base de données',
+      format: 'String',
+      default: ''
+    },
+    file: {
+      doc: 'Fichier base de données',
+      format: 'String',
+      default: ''
+    },
+    pool: {
+      max: {
+        doc: 'Maximum pool connexion',
+        format: 'nat',
+        default: 5
+      },
+      min: {
+        doc: 'Minimu pool connexion',
+        format: 'nat',
+        default: 0
+      },
+      acquire: {
+        doc: 'Pool acquire',
+        format: 'nat',
+        default: 30000
+      },
+      idle: {
+        doc: 'Pool idle',
+        format: 'nat',
+        default: 10000
+      }
     }
   },
   auth: {

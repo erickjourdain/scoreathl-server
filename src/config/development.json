@@ -1,19 +1,19 @@
 {
   "env": "development",
-  "port": 8000,
-  "mongo": {
-    "host": "ds115434.mlab.com",
-    "port": 15434,
-    "name" : "grphql_ini",
-    "user": "ricoud",
-    "pwd": "FranceRicoud99",
-    "options": {
-      "useNewUrlParser": true
-    }
-  },
+  "port": 4000,
   "secret": {
     "master": "eRh#8G36_eH2",
     "jwt": "p5OiT*7sd"
+  },
+  "sqlite": {
+    "path": "D:/ricoud/Mes Documents/Mes Documents/Development/apollo-test/database",
+    "file": "scoreathl.db",
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
   },
   "auth": {
     "facebook": {

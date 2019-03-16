@@ -1,0 +1,28 @@
+{
+  "env": "development",
+  "port": 4000,
+  "secret": {
+    "master": "xxxxxxx",
+    "jwt": "xxxxxxx"
+  },
+  "sqlite": {
+    "path": "path_to_database",
+    "file": "scoreathl.db",
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
+  },
+  "auth": {
+    "facebook": {
+      "clientId": "fb_clientid",
+      "clientSecret": "fb_client_secret"
+    },
+    "google": {
+      "clientId": "google_clientid",
+      "clientSecret": "google_client_secret"
+    }
+  }
+}
