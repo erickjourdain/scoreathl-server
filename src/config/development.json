@@ -1,0 +1,28 @@
+{
+  "env": "development",
+  "port": 8000,
+  "mongo": {
+    "host": "ds115434.mlab.com",
+    "port": 15434,
+    "name" : "grphql_ini",
+    "user": "ricoud",
+    "pwd": "FranceRicoud99",
+    "options": {
+      "useNewUrlParser": true
+    }
+  },
+  "secret": {
+    "master": "eRh#8G36_eH2",
+    "jwt": "p5OiT*7sd"
+  },
+  "auth": {
+    "facebook": {
+      "clientId": "553118598443982",
+      "clientSecret": "0379735d51b50e453286ce20a304f0ac"
+    },
+    "google": {
+      "clientId": "592532701438-n1j1se73q1a8ourksfna9bridifbp6ce.apps.googleusercontent.com",
+      "clientSecret": "ubMqzabVY49nEmAUDIwtWNYm"
+    }
+  }
+}

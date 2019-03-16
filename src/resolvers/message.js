@@ -1,0 +1,40 @@
+import uuidv4 from 'uuid/v4'
+
+export default {
+  Query: {
+    message: (parent, { id }, { models }) => {
+      return models.messages[id]
+    },
+    messages: (parent, args, { models }) => {
+      return Object.values(models.messages)
+    }
+  },
+
+  Mutation: {
+    createMessage: (parent, { text }, { me, models }) => {
+      const id = uuidv4()
+      const message = {
+        id,
+        text,
+        userId: me.id
+      }
+      models.message[id] = message
+      models.users[me.id].messageIds.push(id)
+      return message
+    },
+    deleteMessage: (parent, { id }, { models }) => {
+      const { [id]: message, ...otherMessage } = models.messages
+      if (!message) {
+        return false
+      }
+      models.messages = otherMessage
+      return true
+    }
+  },
+
+  Message: {
+    user: (message) => {
+      return models.users[message.userId]
+    }
+  }
+}

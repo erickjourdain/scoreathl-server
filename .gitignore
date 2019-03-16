@@ -1,0 +1,18 @@
+node_modules
+/dist
+/public
+
+# local env files
+.env
+
+# Log files
+npm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
