@@ -1,12 +1,30 @@
-import mongoose from 'mongoose'
+import uuid from 'uuid/v4'
+import Sequelize from 'sequelize'
 
-const etiquetteSchema = new mongoose.Schema({
-  valeur: {
-    type: String,
-    required: true,
-    trim: true,
-    unique: true
+class Etiquette extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        valeur: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          unique: true,
+          set(val) {
+            this.setDataValue('valeur', val.trim().toLowerCase())
+          }
+        }
+      },
+      { 
+        sequelize
+      }
+    )
   }
-})
+}
 
-export default mongoose.model('Etiquette', etiquetteSchema)
+export default Etiquette

@@ -1,17 +1,18 @@
 import { ApolloError } from 'apollo-server'
 import { object, string, array, number } from 'yup'
 import { find, findIndex, max, sortedIndex, orderBy } from 'lodash'
+import { Op } from 'sequelize/lib/operators'
 
 import { authorisedOrAdmin } from '../services/response'
 
 export default {
   Query: {
-    athlete: (parent, { id }, { models }) => {
-      return models.Athlete.findById(id)
+    athlete: (parent, { id }, { db }) => {
+      return db.Athlete.findById(id)
     }
   },
   Mutation: {
-    athleteResultat: async (parent, args, { user, models }) => {
+    athleteResultat: async (parent, args, { user, db }) => {
       if (!user) {
         throw new ApolloError(`Vous devez être logué pour ajouter un résultat.`)
       }
@@ -24,15 +25,23 @@ export default {
       })
       await schema.validate(args)
       // vérification si athlète existe
-      const athlete = await models.Athlete.findById(args.athlete).populate('score')
+      const athlete = await db.Athlete.findOne({ where: { id: args.athlete }, include: ['score'] })
       if (!athlete) {
         throw new ApolloError(`L'athlète n'existe pas.`)
       }
       // vérification si équipe existe
-      const equipe = await models.Equipe.findOne({ $or: [
-        { adulte: athlete._id },
-        { enfant: athlete._id }
-      ]}).populate({ path: 'competition', populate: { path: 'organisateurs' } })
+      const equipe = await db.Equipe.findOne({ 
+        where: { [Op.or]: [
+          { adulte: athlete.id },
+          { enfant: athlete.id }
+        ]},
+        include: [
+          {
+            model: db.Competition,
+            include: ['organisateurs']
+          }
+        ]
+      })
       if (!equipe) {
         throw new ApolloError(`L'équipe n'existe pas.`)
       }
@@ -45,12 +54,12 @@ export default {
         throw new ApolloError(`La compétition n'est pas ouverte.`)
       }
       // vérification si épreuve existe
-      const epreuve = await models.Epreuve.findById(args.resultat.epreuve)
+      const epreuve = await db.Epreuve.findByPk(args.resultat.epreuve)
       if (!epreuve) {
         throw new ApolloError(`L'épreuve ${args.resultat.epreuve} n'existe pas.`)
       }
       // vérification si l'utilisateur possède les droits pour modifier le score
-      const juges = await models.Juge.find({ competition: equipe.competition._id, user: user._id })
+      const juges = await db.Juge.find({ where: { competition: equipe.competition._id, user: user._id } })
       const organisateur = authorisedOrAdmin(user, 'organisateurs')(equipe.competition)
       if (!organisateur && !find(juges.epreuves, args.resultat.epreuve)) {
         throw new ApolloError(`Vous ne disposez pas des droits pour effectuer cette opération.`)
@@ -63,13 +72,14 @@ export default {
       args.resultat.epreuve = epreuve     
       const index = findIndex(athlete.score.resultats, { epreuve: args.resultat.epreuve._id })
       athlete.score.resultats[index].resultat = args.resultat.resultats
-      const notation = await models.Notation.findOne(
-        { $and: [
+      const notation = await db.Notation.findOne({
+        where: { 
+          [Op.and]: [
             { epreuveId: args.resultat.epreuve._id },
             { categoriesId: athlete.categorie }
           ]
         }
-      )
+      })
       const res = max(args.resultat.resultats)
       if (res <= 0) {
         athlete.score.resultats[index].score = 0
@@ -90,15 +100,15 @@ export default {
         athlete.score.resultats[index].statut = 0
       }
       await athlete.score.save()
-      return await models.Athlete.findById(args.athlete)
+      return await db.Athlete.findById(args.athlete)
     }
   },
   Athlete: {
-    score: (athlete, args, { models }) => {
-      return models.Score.findById(athlete.score)
+    score: (athlete, args, { db }) => {
+      return db.Score.findByPk(athlete.score)
     },
-    categorie: (athlete, args, { models }) => {
-      return models.Categorie.findById(athlete.categorie)
+    categorie: (athlete, args, { db }) => {
+      return db.Categorie.findByPk(athlete.categorie)
     }
   }
 }

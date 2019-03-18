@@ -1,35 +1,49 @@
-import mongoose from 'mongoose'
 
-const athleteSchema = new mongoose.Schema({
-  nom: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true
-  },
-  prenom: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true
-  },
-  dateNaissance: {
-    type: Date,
-    required: true
-  },
-  categorie: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Categorie',
-    required: true
-  },
-  avatar: {
-    type: String
-  },
-  score: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Score',
-    required: true
+import uuid from 'uuid/v4'
+import Sequelize from 'sequelize'
+
+class Athlete extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        nom: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            this.setDataValue('nom', val.trim().toLowerCase())
+          }
+        },
+        prenom: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            this.setDataValue('prenom', val.trim().toLowerCase())
+          }
+        },
+        annee: {
+          type: DataTypes.INTEGER,
+          allowNull: false
+        },
+        avatar: {
+          type: DataTypes.STRING
+        }
+      },
+      { 
+        sequelize
+      }
+    )
   }
-})
 
-export default mongoose.model('Athlete', athleteSchema)
+  static associate(models) {
+    this.categorie = this.belongsTo(models.Categorie)
+    this.score = this.belongsTo(models.Score)
+  }
+}
+
+export default Athlete

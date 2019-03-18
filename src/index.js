@@ -9,7 +9,7 @@ import api from './api'
 
 import schema from './schema'
 import resolvers from './resolvers'
-import models from './models'
+import db from './models'
 
 const apiRoot = process.env.API_ROOT || ''
 const app = express(apiRoot, api)
@@ -24,7 +24,6 @@ sequelize.authenticate()
     console.error('database connection error: ' + err)
     process.exit(-1)
   })
-
 /*
 app.use('/graphql', jwt(), graphqlUploadExpress({ maxFileSize: 2000000, maxFiles: 5 }))
 
@@ -34,7 +33,7 @@ const server = new ApolloServer({
   uploads: false,
   context: ({ req }) => {
     return {
-      models,
+      db,
       user: req.user
     }
   }
@@ -42,7 +41,6 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app, paths: '/graphql' })
 */
-
 app.listen({ port: 4000 }, () => {
   console.log('Apollo server on http://localhost:4000/graphql')
 })

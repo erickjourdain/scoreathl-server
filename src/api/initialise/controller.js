@@ -1,31 +1,27 @@
 import { string, object } from 'yup'
 
-import { success } from '../../services/response'
-
-import Models from '../../models'
+import db from '../../models'
 import epreuves from './data/epreuves'
 import categories from './data/categories'
 import notations from './data/notations'
 
-export const initialise = async (req, res) => {
+export const initialise = async (req, res, next) => {
   try {
-    const existingEpreuves = await Models.Epreuve.find()
+    const existingEpreuves = await db.Epreuve.findAll()
     if (existingEpreuves.length !== epreuves.length) {
-      await Models.Epreuve.remove({})
-      await Models.Epreuve.create(epreuves)
+      await db.Epreuve.destroy({ where: {}, truncate: true })
+      await db.Epreuve.bulkCreate(epreuves)
     }
-    const existingCategories = await Models.Categorie.find()
+    const existingCategories = await db.Categorie.findAll()
     if (existingCategories.length !== categories.length) {
-      await Models.Categorie.remove({})
-      await Models.Categorie.create(categories)
+      await db.Categorie.destroy({ where: {}, truncate: true })
+      await db.Categorie.bulkCreate(categories)
     }
-    const existingNotations = await Models.Notation.find()
+    const existingNotations = await db.Notation.findAll()
     if (existingNotations.length !== notations.length) {
-      await Models.Notation.remove({})
+      await db.Notation.destroy({ where: {}, truncate: true })
       for (const notation of notations) {
-        const newNotation = {}
-        newNotation.points = notation.points
-        const epreuve = await Models.Epreuve.findOne({ nom: notation.epreuve })
+        const epreuve = await db.Epreuve.findOne({ where: { nom: notation.epreuve } })
         if (!epreuve) {
           return res.status(404).json({
             valid: false,
@@ -33,10 +29,9 @@ export const initialise = async (req, res) => {
             message: `epreuve "${cotation.test}" non trouvée`
           })
         }
-        newNotation.epreuveId = epreuve
-        newNotation.categoriesId = []
+        let categories = []
         for (const cat of notation.categories) {
-          const categorie = await Models.Categorie.findOne({ nom: cat, genre: notation.genre })
+          const categorie = await db.Categorie.findOne({ where: { nom: cat, genre: notation.genre } })
           if (!categorie) {
             return res.status(404).json({
               valid: false,
@@ -44,12 +39,17 @@ export const initialise = async (req, res) => {
               message: `categorie "${cat}" non trouvée`
             })
           }
-          newNotation.categoriesId.push(categorie)
+          categories.push(categorie)
         }
-        await Models.Notation.create(newNotation)
+        const newNotation = db.Notation.build({
+          points: notation.points
+        })
+        await newNotation.save()
+        await newNotation.setEpreuve(epreuve)
+        await newNotation.addCategories(categories)
       }
     }
-    success(res, 201)({ app_init: true })
+    next()
   } catch (error) {
     console.log(error)
     res.status(500).end()
@@ -66,9 +66,19 @@ export const createUser = async ({ body }, res, next) => {
     })
     await schema.isValid(body)
     body.role = 'admin'
-    await Models.User.create(body)
+    await db.User.create(body)
     next()
   } catch (error) {
+    console.log(error)
+    res.status(500).end()
+  }
+}
+
+export const createDatabase = async (req, res, next) => {
+  try {
+    await db.sequelize.sync({ force: true })
+    next()
+  } catch (err) {
     console.log(error)
     res.status(500).end()
   }

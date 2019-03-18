@@ -9,7 +9,7 @@ type Athlete {
   id: ID!
   nom: String!
   prenom: String!
-  dateNaissance: Date!
+  anneeNaissance: Int!
   categorie: Categorie!
   avatar: String
   score: Score!

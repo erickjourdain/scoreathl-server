@@ -1,18 +1,37 @@
-import mongoose from 'mongoose'
+import uuid from 'uuid/v4'
+import Sequelize from 'sequelize'
 
-const notationSchema = new mongoose.Schema({
-  points: {
-    type: [Number],
-    required: true
-  },
-  epreuveId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Epreuve'
-  },
-  categoriesId: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Categorie'
-  }]
-})
+class Notation extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        points: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          get () {
+            return this.getDataValue('points'). split(';')
+          },
+          set (val) {
+            this.setDataValue('points', val.join(';'))
+          }
+        }
+      },
+      { 
+        sequelize
+      }
+    )
+  }
+  
+  static associate(models) {
+    this.belongsTo(models.Epreuve, { as: 'epreuve' })
+    this.belongsToMany(models.Categorie, { through: 'notation_categorie', as: 'categories' })
+  }
+}
 
-export default mongoose.model('Notation', notationSchema)
+export default Notation

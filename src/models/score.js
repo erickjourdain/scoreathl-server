@@ -1,33 +1,41 @@
-import mongoose from 'mongoose'
+import uuid from 'uuid/v4'
+import Sequelize from 'sequelize'
 
-const scoreSchema = new mongoose.Schema({
-  points: {
-    type: Number,
-    default: 0
-  },
-  resultats: {
-    type: [ {
-      epreuve: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Epreuve'
+class Score extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        points: {
+          type: DataTypes.REAL,
+          default: 0
+        }
       },
-      resultat: [Number],
-      score: Number,
-      statut: {
-        type: Number,
-        enum: [0, 1, 2],
-        default: 0
+      { 
+        sequelize,
+        hooks: {
+          beforeSave: (score) => {
+            if (score.resultats && score.resultats.length) {
+              score.points = 0
+              score.resultats.forEach(res => {
+                score.points += res.score
+              })  
+            }
+          }
+        }
       }
-    }]
+    )
   }
-})
+  
+  static associate(models) {
+    this.belongsToMany(models.Resultat, { through: 'resultat_score', as: 'resultats' })
+  }
 
-scoreSchema.pre('save', function(next) {
-  this.points = 0
-  this.resultats.forEach(element => {
-    this.points += element.score
-  })
-  next()
-})
+}
 
-export default mongoose.model('Score', scoreSchema)
+export default Score

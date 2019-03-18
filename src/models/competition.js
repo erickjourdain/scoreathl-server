@@ -1,60 +1,74 @@
-import mongoose from 'mongoose'
+import uuid from 'uuid/v4'
 import bcrypt from 'bcrypt'
+import Sequelize from 'sequelize'
 
-const competitionSchema = new mongoose.Schema({
-  nom: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  emplacement: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  date: {
-    type: Date,
-    required: true
-  },
-  image: {
-    type: String,
-    trim: true
-  },
-  statut: {
-    type: Boolean,
-    required: true,
-    default: false
-  },
-  pwd: {
-    type: String,
-    required: true
-  },
-  organisateurs: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }]
-}, {
-  timestamps: true
-})
-
-competitionSchema.pre('save', function (next) {
-  if (!this.isModified('pwd')) return next()
-
-  const env = process.env.NODE_ENV || 'development'
-
-  /* istanbul ignore next */
-  const rounds = env === 'test' ? 1 : 9
-
-  bcrypt.hash(this.pwd, rounds).then((hash) => {
-    this.pwd = hash
-    next()
-  }).catch(next)
-})
-
-competitionSchema.methods = {
+class Competition extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        nom: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            this.setDataValue('nom', val.trim().toLowerCase())
+          }
+        },
+        emplacement: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            this.setDataValue('emplacement', val.trim().toLowerCase())
+          }
+        },
+        date: {
+          type: DataTypes.DATE,
+          allowNull: false
+        },
+        image: {
+          type: DataTypes.STRING
+        },
+        statut: {
+          type: DataTypes.BOOLEAN,
+          default: false
+        },
+        pwd: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            const env = process.env.NODE_ENV || 'development'
+    
+            /* istanbul ignore next */
+            const rounds = env === 'test' ? 1 : 9
+          
+            bcrypt.hash(val, rounds)
+              .then((hash) => {
+                this.setDataValue('pwd', hash)
+              })
+              .catch((err) => {
+                throw err
+              })
+          }
+        }
+      },
+      { 
+        sequelize
+      }
+    )
+  }
+  
   authenticate (password) {
     return bcrypt.compare(password, this.pwd).then((valid) => valid ? this : false)
   }
+
+  static associate(models) {
+    this.belongsToMany(models.User, { through: 'organisateur_competition', as: 'organisateurs' })
+  }
 }
 
-export default mongoose.model('Competition', competitionSchema)
+export default Competition

@@ -1,50 +1,48 @@
-import mongoose from 'mongoose'
+import uuid from 'uuid/v4'
+import Sequelize from 'sequelize'
 
-const equipeSchema = new mongoose.Schema({
-  nom: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  nomUnique: {
-    type: String
-  },
-  adulte: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Athlete',
-    required: true
-  },
-  enfant: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Athlete',
-    required: true
-  },
-  competition: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Competition',
-    required: true
-  },
-  avatar: {
-    type: String
-  },
-  etiquette: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Etiquette',
-  },
-  statut: {
-    type: Boolean,
-    default: false
-  },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+class Equipe extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+    return super.init(
+      {
+        id: {
+          allowNull: false,
+          primaryKey: true,
+          type: Sequelize.UUID,
+          defaultValue: () => uuid()
+        },
+        nom: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          set(val) {
+            this.setDataValue('nomUnique', val.trim().toLowerCase())
+          }
+        },
+        nomUnique: {
+          type: DataTypes.STRING,
+          allowNull: false
+        },
+        avatar: {
+          type: DataTypes.STRING
+        },
+        statut: {
+          type: DataTypes.BOOLEAN,
+          default: false
+        }
+      },
+      { 
+        sequelize
+      }
+    )
   }
-})
 
-equipeSchema.pre('save', function (next) {
-  if (!this.isModified('nom')) return next()
-  this.nomUnique = this.nom.toLowerCase()
-  next()
-})
+  static associate(models) {
+    this.adulte = this.belongsTo(models.Athlete)
+    this.enfant = this.belongsTo(models.Athlete)
+    this.competition = this.belongsTo(models.Competition)
+    this.etiquette = this.belongsTo(models.Etiquette)
+    this.proprietaire = this.belongsTo(models.User)
+  }
+}
 
-export default mongoose.model('Equipe', equipeSchema)
+export default Equipe
