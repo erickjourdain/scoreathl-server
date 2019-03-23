@@ -1,10 +1,10 @@
 export default {
   Query: {
-    epreuve: (parent, { id }, { models }) => {
-      return models.Epreuve.findById(id)
+    epreuve: (parent, { id }, { db }) => {
+      return db.Epreuve.findByPk(id)
     },
-    epreuves: (parent, args, { models }) => {
-      return models.Epreuve.find({})
+    epreuves: (parent, args, { db }) => {
+      return db.Epreuve.findAll()
     }
   }
 }

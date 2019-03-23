@@ -1,24 +1,19 @@
-import mongoose from 'mongoose'
-
-const ObjectId = mongoose.Types.ObjectId
-
 export default {
   Query: {
-    notation: (parent, { id }, { models }) => {
-      return models.Notation.findById(id)
+    notation: (parent, { id }, { db }) => {
+      return db.Notation.findByPk(id)
     },
-    notations: (parent, args, { models }) => {
-      return models.Notation.find({})
+    notations: (parent, args, { db }) => {
+      return db.Notation.findAll()
     }
   },
 
   Notation: {
-    epreuve: (notation, args, { models }) => {
-      return models.Epreuve.findById(notation.epreuveId)
+    epreuve: (notation) => {
+      return notation.getEpreuve()
     },
-    categories: (notation, args, { models }) => {
-      let objectIdArray = notation.categoriesId.map(s => ObjectId(s))
-      return models.Categorie.find({ _id: { $in: objectIdArray } })
+    categories: (notation) => {
+      return notation.getCategories()
     }
   }
 }

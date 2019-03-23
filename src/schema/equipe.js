@@ -15,7 +15,7 @@ extend type Mutation {
 input AthleteInputFull {
   nom: String!
   prenom: String!
-  dateNaissance: Date!
+  annee: Int!
   genre: String!
   avatar: Upload
 }
@@ -23,7 +23,7 @@ input AthleteInputFull {
 input AthleteInput {
   nom: String
   prenom: String
-  dateNaissance: Date
+  annee: Int
   genre: String
   avatar: Upload
 }

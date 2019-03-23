@@ -35,39 +35,52 @@ class Competition extends Sequelize.Model {
         },
         statut: {
           type: DataTypes.BOOLEAN,
-          default: false
+          allowNull: false,
+          defaultValue: false
         },
         pwd: {
           type: DataTypes.STRING,
-          allowNull: false,
-          set(val) {
-            const env = process.env.NODE_ENV || 'development'
-    
-            /* istanbul ignore next */
-            const rounds = env === 'test' ? 1 : 9
-          
-            bcrypt.hash(val, rounds)
-              .then((hash) => {
-                this.setDataValue('pwd', hash)
-              })
-              .catch((err) => {
-                throw err
-              })
-          }
+          allowNull: false
         }
       },
       { 
-        sequelize
+        sequelize,
+        hooks: {
+          beforeSave: async (competition) => {
+            if (competition.pwd) { 
+              if (competition.pwd.length < 6) {
+                throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
+              } else {
+                const env = process.env.NODE_ENV || 'development'
+                /* istanbul ignore next */
+                const rounds = env === 'test' ? 1 : 9
+                try {
+                  let hash = await bcrypt.hash(competition.pwd, rounds)
+                  competition.pwd = hash
+                } catch (err) {
+                  throw err
+                }
+              }
+            }
+          }
+        }
       }
     )
   }
   
-  authenticate (password) {
-    return bcrypt.compare(password, this.pwd).then((valid) => valid ? this : false)
+  async authenticate (password) {
+    try {
+      const valid = await bcrypt.compare(password, this.pwd)
+      return (valid) ? this : false 
+    } catch (error) {
+      throw error
+    }
   }
 
   static associate(models) {
-    this.belongsToMany(models.User, { through: 'organisateur_competition', as: 'organisateurs' })
+    this.belongsToMany(models.User, { through: 'organisateur_competition', as: 'organisateurs' }),
+    this.hasMany(models.Equipe)
+    this.hasMany(models.Challenge)
   }
 }
 

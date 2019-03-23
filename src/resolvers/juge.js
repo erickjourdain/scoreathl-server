@@ -31,7 +31,7 @@ export default {
         throw new ApolloError(`La compétition "${args.competition}" n'existe pas.`)
       }
       if (!authorisedOrAdmin(user, 'organisateurs')(competition)) {
-        throw new ApolloError(`Vous n'êtes pas un des organisateurs de cette compétition.`)
+        throw new AuthenticationError(`Vous n'êtes pas un des organisateurs de cette compétition.`)
       }
       await models.Juge.deleteMany({ competition: competition._id })
       for (let i = 0; i < args.juges.length; i++) {
@@ -42,7 +42,7 @@ export default {
           throw new ApolloError(`L'utilisateur "${args.juges[i].user}" n'existe pas dans la base de données.`)
         }
         if (!rolesOrAdmin(juge.user, ['organisateur', 'juge'])) {
-          throw new ApolloError(`L'utilisateur "${args.juges[i]}" ne dispose pas des droits suffisants pour être juge.`)
+          throw new AuthenticationError(`L'utilisateur "${args.juges[i]}" ne dispose pas des droits suffisants pour être juge.`)
         }
         for (let j = 0; j < args.juges[i].epreuves.length; j++) {
           const epreuve = await models.Epreuve.findById(args.juges[i].epreuves[j])

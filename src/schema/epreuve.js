@@ -11,7 +11,6 @@ type Epreuve {
   nom: String!
   unitePrincipale: String!
   uniteSecondaire: String
-  essais: Int!
   erreur: String!
 }
 `

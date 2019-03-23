@@ -27,11 +27,6 @@ class Epreuve extends Sequelize.Model {
           type: DataTypes.ENUM('', 'cm', 'sec'),
           allowNull: false
         },
-        essais: {
-          type: DataTypes.INTEGER,
-          allowNull: false,
-          default: 1
-        },
         erreur: {
           type: DataTypes.STRING,
           allowNull: false,

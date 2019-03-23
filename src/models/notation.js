@@ -12,14 +12,8 @@ class Notation extends Sequelize.Model {
           defaultValue: () => uuid()
         },
         points: {
-          type: DataTypes.STRING,
-          allowNull: false,
-          get () {
-            return this.getDataValue('points'). split(';')
-          },
-          set (val) {
-            this.setDataValue('points', val.join(';'))
-          }
+          type: DataTypes.ARRAY(DataTypes.REAL),
+          allowNull: false
         }
       },
       { 
@@ -29,7 +23,7 @@ class Notation extends Sequelize.Model {
   }
   
   static associate(models) {
-    this.belongsTo(models.Epreuve, { as: 'epreuve' })
+    this.belongsTo(models.Epreuve)
     this.belongsToMany(models.Categorie, { through: 'notation_categorie', as: 'categories' })
   }
 }

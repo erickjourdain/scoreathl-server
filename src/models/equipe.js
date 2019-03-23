@@ -13,10 +13,7 @@ class Equipe extends Sequelize.Model {
         },
         nom: {
           type: DataTypes.STRING,
-          allowNull: false,
-          set(val) {
-            this.setDataValue('nomUnique', val.trim().toLowerCase())
-          }
+          allowNull: false
         },
         nomUnique: {
           type: DataTypes.STRING,
@@ -37,11 +34,11 @@ class Equipe extends Sequelize.Model {
   }
 
   static associate(models) {
-    this.adulte = this.belongsTo(models.Athlete)
-    this.enfant = this.belongsTo(models.Athlete)
-    this.competition = this.belongsTo(models.Competition)
-    this.etiquette = this.belongsTo(models.Etiquette)
-    this.proprietaire = this.belongsTo(models.User)
+    this.belongsTo(models.Athlete, { as: 'adulte' })
+    this.belongsTo(models.Athlete, { as: 'enfant' })
+    this.belongsTo(models.Competition)
+    this.belongsTo(models.Etiquette)
+    this.belongsTo(models.User, { as: 'proprietaire' }) 
   }
 }
 

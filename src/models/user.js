@@ -19,10 +19,7 @@ class User extends Sequelize.Model {
         },
         nom: {
           type: DataTypes.STRING,
-          allowNull: false,
-          set(val) {
-            this.setDataValue('nom', val.trim().toLowerCase())
-          }
+          allowNull: false
         },
         email: {
           type: DataTypes.STRING,
@@ -55,7 +52,7 @@ class User extends Sequelize.Model {
         },
         role: {
           type: DataTypes.ENUM(roles),
-          default: 'athlète'
+          defaultValue: 'athlète'
         },
         avatar: {
           type: DataTypes.STRING
@@ -107,8 +104,13 @@ class User extends Sequelize.Model {
       })
   }
   
-  authenticate (password) {
-    return bcrypt.compare(password, this.pwd).then((valid) => valid ? this : false)
+  async authenticate (password) {
+    try {
+      const valid = await bcrypt.compare(password, this.password)
+      return (valid) ? this : false 
+    } catch (error) {
+      throw error
+    }
   }
 
   view (full) {
@@ -116,13 +118,7 @@ class User extends Sequelize.Model {
     let fields = ['id', 'nom', 'avatar', 'role']
 
     if (full) {
-      fields = [...fields, 'email', 'createdAt']
-      if (this.services.facebook) {
-        view.service = 'facebook'
-      }
-      if (this.services.google) {
-        view.service = 'google'
-      }
+      fields = [...fields, 'email', 'facebook', 'google', 'createdAt']
     }
     fields.forEach((field) => { view[field] = this[field] })
     return view  

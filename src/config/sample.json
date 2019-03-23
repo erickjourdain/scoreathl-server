@@ -15,6 +15,18 @@
       "idle": 10000
     }
   },
+  "postgresql": {
+    "database": "testscoreathl",
+    "username": "testscoreathl",
+    "password": "123456",
+    "host": "localhost",
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
+  },
   "auth": {
     "facebook": {
       "clientId": "fb_clientid",

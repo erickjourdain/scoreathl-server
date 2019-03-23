@@ -36,6 +36,9 @@ class Categorie extends Sequelize.Model {
       }
     )
   }
+  static associate(models) {
+    this.belongsToMany(models.Notation, { through: 'notation_categorie', as: 'notations' })
+  }
 }
 
 export default Categorie

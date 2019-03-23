@@ -1,13 +1,13 @@
 {
-  "env": "development",
-  "port": 4000,
+  "env": "test",
+  "port": 4010,
   "secret": {
     "master": "eRh#8G36_eH2",
     "jwt": "p5OiT*7sd"
   },
   "sqlite": {
     "path": "D:/ricoud/Mes Documents/Mes Documents/Development/apollo-test/database",
-    "file": "scoreathl.db",
+    "file": "scoreathl-test.db",
     "pool": {
       "max": 5,
       "min": 0,
@@ -16,7 +16,7 @@
     }
   },
   "postgresql": {
-    "database": "scoreathl",
+    "database": "testscoreathl",
     "username": "scoreathl",
     "password": "IMz0P143",
     "host": "localhost",

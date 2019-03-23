@@ -1,19 +1,19 @@
 import { object, string} from 'yup'
-import { ApolloError } from 'apollo-server'
+import { ApolloError, AuthenticationError } from 'apollo-server'
 
 import { rolesOrAdmin } from '../services/response'
 
 export default {
   Query: {
-    etiquette: (parent, { id }, { models }) => {
-      return models.Etiquette.findById(id)
+    etiquette: (parent, { id }, { db }) => {
+      return db.Etiquette.findByPk(id)
     },
-    etiquettes: async (parent, args, { models }) => {
-      return models.Etiquette.find({})
+    etiquettes: async (parent, args, { db }) => {
+      return db.Etiquette.findAll()
     }
   },
   Mutation: {
-    creerEtiquette: async (parent, args, { models, user }) => {
+    creerEtiquette: async (parent, args, { db, user }) => {
       if (!rolesOrAdmin(user, ['organisateur'])) {
         throw new AuthenticationError(`Vous ne disposez pas des droits nécessaires pour effectuer cette opération.`)
       }
@@ -21,9 +21,9 @@ export default {
         valeur: string().required().min(3, `Le nom de la compétition doit comporter au moins 3 caractères.`)
       })
       await schema.validate(args)
-      return models.Etiquette.create(args)
+      return db.Etiquette.create(args)
     },
-    supprimerEtiquette: async (parent, args, { models, user }) => {
+    supprimerEtiquette: async (parent, args, { db, user }) => {
       if (!rolesOrAdmin(user, ['organisateur'])) {
         throw new AuthenticationError(`Vous ne disposez pas des droits nécessaires pour effectuer cette opération.`)
       }
@@ -31,17 +31,17 @@ export default {
         id: string().required()
       })
       await schema.validate(args)
-      const equipe = await models.Equipe.findOne({ etiquette: args.id })
+      const equipe = await db.Equipe.findOne({ etiquette: args.id })
       if (equipe && equipe.length) {
         throw new ApolloError(`L'étiquette est utilisée, elle ne peut être supprimée.`)
       }
-      await models.Etiquette.deleteOne({ _id: args.id })
+      await db.Etiquette.destroy({ where: { id: args.id } })
       return true
     }
   },
   Etiquette: {
-    utilisee: async (etiquette, args, { models }) => {
-      const equipe = await models.Equipe.findOne({ etiquette: etiquette._id })
+    utilisee: async (etiquette, args, { db }) => {
+      const equipe = await db.Equipe.findOne({ etiquette: etiquette.id })
       return (equipe) ? true : false
     }
   }

@@ -1,7 +1,7 @@
-import { ApolloError } from 'apollo-server'
+import { ApolloError, AuthenticationError } from 'apollo-server'
 import { object, string, array, number } from 'yup'
 import { find, findIndex, max, sortedIndex, orderBy } from 'lodash'
-import { Op } from 'sequelize/lib/operators'
+import { Op } from 'sequelize'
 
 import { authorisedOrAdmin } from '../services/response'
 
@@ -9,12 +9,15 @@ export default {
   Query: {
     athlete: (parent, { id }, { db }) => {
       return db.Athlete.findById(id)
-    }
+    },
+    athletes: (parent, args, { db }) => {
+      return db.Athlete.findAll()
+    } 
   },
   Mutation: {
     athleteResultat: async (parent, args, { user, db }) => {
       if (!user) {
-        throw new ApolloError(`Vous devez être logué pour ajouter un résultat.`)
+        throw new AuthenticationError(`Vous devez être logué pour ajouter un résultat.`)
       }
       const schema = object().shape({
         athlete: string().required(),
@@ -24,23 +27,24 @@ export default {
         }).required()
       })
       await schema.validate(args)
-      // vérification si athlète existe
-      const athlete = await db.Athlete.findOne({ where: { id: args.athlete }, include: ['score'] })
-      if (!athlete) {
-        throw new ApolloError(`L'athlète n'existe pas.`)
+      // vérification si score existe
+      const score = await db.Score.findOne({ where: { AthleteId: args.athlete, ChallengeId: args.resultat.epreuve } })
+      if (!score) {
+        throw new ApolloError(`Le score n'existe pas.`)
       }
       // vérification si équipe existe
       const equipe = await db.Equipe.findOne({ 
         where: { [Op.or]: [
-          { adulte: athlete.id },
-          { enfant: athlete.id }
+          { adulteId: args.athlete },
+          { enfantId: args.athlete }
         ]},
-        include: [
-          {
-            model: db.Competition,
-            include: ['organisateurs']
-          }
-        ]
+        include: [{
+          model: db.Competition,
+          include: [{
+            model: db.User,
+            as: 'organisateurs'
+          }]
+        }]
       })
       if (!equipe) {
         throw new ApolloError(`L'équipe n'existe pas.`)
@@ -49,42 +53,49 @@ export default {
       if (!equipe.statut) {
         throw new ApolloError(`L'équipe n'est pas validée.`)
       }
-      // vérification statut équipe
-      if (!equipe.competition.statut) {
+      // vérification statut compétition
+      if (!equipe.Competition) {
+        throw new ApolloError(`La compétition n'existe pas.`)
+      }
+      if (!equipe.Competition.statut) {
         throw new ApolloError(`La compétition n'est pas ouverte.`)
       }
-      // vérification si épreuve existe
-      const epreuve = await db.Epreuve.findByPk(args.resultat.epreuve)
-      if (!epreuve) {
-        throw new ApolloError(`L'épreuve ${args.resultat.epreuve} n'existe pas.`)
-      }
       // vérification si l'utilisateur possède les droits pour modifier le score
-      const juges = await db.Juge.find({ where: { competition: equipe.competition._id, user: user._id } })
-      const organisateur = authorisedOrAdmin(user, 'organisateurs')(equipe.competition)
-      if (!organisateur && !find(juges.epreuves, args.resultat.epreuve)) {
-        throw new ApolloError(`Vous ne disposez pas des droits pour effectuer cette opération.`)
+      if (user.role !== 'admin') {
+        if (!find(equipe.Competition.organisateurs, o => {
+          return o.dataValues.id === user.id
+        })) {
+          const juge = await db.Juge.findOne({where: { UserId: user.id, ChallengeId: args.resultat.epreuve } })
+          if (!juge) {
+            throw new ApolloError(`Vous ne disposez pas des droits pour effectuer cette opération.`)
+          }
+        }
       }
       // vérification si nombre de résultats correspond aux attentes
-      if (epreuve.unitePrincipale !== 'm' && args.resultat.resultats.length > 1) {
-        throw new ApolloError(`L'épreuve ${epreuve.nom} n'autorise qu'un seul résultat.`)
+      const challenge = await db.Challenge.findByPk(args.resultat.epreuve)
+      const epreuve = await challenge.getEpreuve()
+      if (!challenge) {
+        throw new ApolloError(`L'épreuve ${args.resultat.epreuve} n'existe pas.`)
       }
-      // association objet épreuve aux arguments
-      args.resultat.epreuve = epreuve     
-      const index = findIndex(athlete.score.resultats, { epreuve: args.resultat.epreuve._id })
-      athlete.score.resultats[index].resultat = args.resultat.resultats
-      const notation = await db.Notation.findOne({
-        where: { 
-          [Op.and]: [
-            { epreuveId: args.resultat.epreuve._id },
-            { categoriesId: athlete.categorie }
-          ]
-        }
+      if (challenge.essais !== args.resultat.resultats.length) {
+        throw new ApolloError(`L'épreuve ${epreuve.nom} requiert ${challenge.essais} marques.`)
+      }
+      // enregistrement des marques
+      const athele = await db.Athlete.findByPk(args.athlete)
+      const notation = await db.Notation.findOne({ 
+        where: { EpreuveId: epreuve.id },
+        include: [{
+          model: db.Categorie,
+          as: 'categories',
+          where: { id: (await athele.getCategorie()).id }
+        }]
       })
+      score.marques = args.resultat.resultats
       const res = max(args.resultat.resultats)
       if (res <= 0) {
-        athlete.score.resultats[index].score = 0
+        score.points = 0
       } else {
-        athlete.score.resultats[index].score = (epreuve.unitePrincipale === 'm')
+        score.points = (epreuve.unitePrincipale === 'm')
           ? sortedIndex(orderBy(notation.points, [], 'asc'), res) + 1
           : 40 - sortedIndex(orderBy(notation.points, [], 'asc'), res)
       }
@@ -92,23 +103,23 @@ export default {
       for (let i = 0; i < args.resultat.resultats.length; i++) {
         nbRes = (args.resultat.resultats[i] !== 0) ? nbRes + 1 : nbRes
       }
-      if ((epreuve.unitePrincipale !== 'm' && nbRes === 1) ||  (epreuve.unitePrincipale === 'm' && nbRes === 3)) {
-        athlete.score.resultats[index].statut = 2
+      if (nbRes === challenge.essais) {
+        score.statut = 2
       } else if (nbRes) {
-        athlete.score.resultats[index].statut = 1
+        score.statut = 1
       } else {
-        athlete.score.resultats[index].statut = 0
+        score.statut = 0
       }
-      await athlete.score.save()
-      return await db.Athlete.findById(args.athlete)
+      await score.save()
+      return await db.Athlete.findByPk(args.athlete)
     }
   },
   Athlete: {
-    score: (athlete, args, { db }) => {
-      return db.Score.findByPk(athlete.score)
+    scores: (athlete) => {
+      return athlete.getScores()
     },
-    categorie: (athlete, args, { db }) => {
-      return db.Categorie.findByPk(athlete.categorie)
+    categorie: (athlete) => {
+      return athlete.getCategorie()
     }
   }
 }

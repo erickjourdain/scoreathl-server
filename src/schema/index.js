@@ -1,15 +1,16 @@
 import { gql } from 'apollo-server-express'
 import userSchema from './user'
-import messageSchema from './message'
+//import messageSchema from './message'
 import epreuveSchema from './epreuve'
 import categorieSchema from './categorie'
 import notationSchema from './notation'
+import etiquetteSchema from './etiquette'
 import competitionSchema from './competition'
 import jugeSchema from './juge'
-import etiquetteSchema from './etiquette'
 import scoreSchema from './score'
 import athleteSchema from './athlete'
 import equipeSchema from './equipe'
+import challengeSchema from './challenge'
 import fileSchema from './file'
 
 const linkSchema = gql`
@@ -30,15 +31,16 @@ const linkSchema = gql`
 `
 
 export default [
-  linkSchema, 
+  linkSchema,
   userSchema, 
-  messageSchema,
+  // messageSchema,
   epreuveSchema,
   categorieSchema,
   notationSchema,
+  etiquetteSchema,
+  challengeSchema,
   competitionSchema,
   jugeSchema,
-  etiquetteSchema,
   scoreSchema,
   athleteSchema,
   equipeSchema,

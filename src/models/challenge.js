@@ -1,7 +1,7 @@
 import uuid from 'uuid/v4'
 import Sequelize from 'sequelize'
 
-class Score extends Sequelize.Model {
+class Challenge extends Sequelize.Model {
   static init(sequelize, DataTypes) {
     return super.init(
       {
@@ -11,18 +11,10 @@ class Score extends Sequelize.Model {
           type: Sequelize.UUID,
           defaultValue: () => uuid()
         },
-        points: {
-          type: DataTypes.INTEGER,
-          defaultValue: 0
-        },
-        marques: {
-          type: DataTypes.ARRAY(DataTypes.REAL),
-          allowNull: false
-        },
-        statut: {
+        essais: {
           type: DataTypes.INTEGER,
           allowNull: false,
-          defaultValue: 0
+          default: 1
         }
       },
       { 
@@ -32,10 +24,10 @@ class Score extends Sequelize.Model {
   }
   
   static associate(models) {
-    this.belongsTo(models.Challenge)
-    this.belongsTo(models.Athlete)
+    this.hasMany(models.Juge)
+    this.belongsTo(models.Competition)
+    this.belongsTo(models.Epreuve)
   }
-
 }
 
-export default Score
+export default Challenge

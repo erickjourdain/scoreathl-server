@@ -14,24 +14,19 @@ class Athlete extends Sequelize.Model {
         },
         nom: {
           type: DataTypes.STRING,
-          allowNull: false,
-          set(val) {
-            this.setDataValue('nom', val.trim().toLowerCase())
-          }
+          allowNull: false
         },
         prenom: {
           type: DataTypes.STRING,
-          allowNull: false,
-          set(val) {
-            this.setDataValue('prenom', val.trim().toLowerCase())
-          }
+          allowNull: false
         },
         annee: {
           type: DataTypes.INTEGER,
           allowNull: false
         },
         avatar: {
-          type: DataTypes.STRING
+          type: DataTypes.STRING,
+          defaultValue: null
         }
       },
       { 
@@ -41,8 +36,8 @@ class Athlete extends Sequelize.Model {
   }
 
   static associate(models) {
-    this.categorie = this.belongsTo(models.Categorie)
-    this.score = this.belongsTo(models.Score)
+    this.belongsTo(models.Categorie)
+    this.hasMany(models.Score)
   }
 }
 

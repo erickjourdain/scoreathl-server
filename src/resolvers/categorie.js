@@ -1,15 +1,15 @@
 export default {
   Query: {
-    categorie: (parent, { id }, { models }) => {
-      return models.Categorie.findById(id)
+    categorie: (parent, { id }, { db }) => {
+      return db.Categorie.findByPk(id)
     },
-    categories: async (parent, args, { models }) => {
-      return models.Categorie.find({})
+    categories: async (parent, args, { db }) => {
+      return db.Categorie.findAll()
     }
   },
   Categorie: {
-    notations: (categorie, args, { models }) => {
-      return models.Notation.find({ categoriesId: categorie.id }) 
+    notations: (categorie, args, { db }) => {
+      return categorie.getNotations() 
     }
   }
 }

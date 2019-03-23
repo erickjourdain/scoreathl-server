@@ -11,19 +11,10 @@ class Resultat extends Sequelize.Model {
           type: Sequelize.UUID,
           defaultValue: () => uuid()
         },
-        score: {
+        points: {
           type: DataTypes.INTEGER,
           allowNull: false,
-          default: 0
-        },
-        marques: {
-          type: DataTypes.ARRAY(DataTypes.REAL),
-          allowNull: false
-        },
-        statut: {
-          type: DataTypes.ENUM(0, 1, 2),
-          allowNull: false,
-          default: 0
+          defaultValue: 0
         }
       },
       { 
@@ -33,7 +24,8 @@ class Resultat extends Sequelize.Model {
   }
   
   static associate(models) {
-    this.epreuve = this.belongsTo(models.Epreuve)
+    this.belongsTo(models.Athlete)
+    this.hasMany(models.Score)
   }
 }
 

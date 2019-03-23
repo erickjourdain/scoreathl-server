@@ -6,7 +6,7 @@ import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt'
 
 import * as facebookService from '../facebook'
 import * as googleService from '../google'
-import User from '../../models/user'
+import db from '../../models'
 
 import config from '../../config'
 
@@ -59,7 +59,7 @@ passport.use('password', new BasicStrategy(async (nom, password, done) => {
   
     await userSchema.isValid({ nom, password})
   
-    User.findOne({ nom }).then((user) => {
+    db.User.findOne({ nom }).then((user) => {
       if (!user) {
         done(true)
         return null
@@ -113,7 +113,7 @@ passport.use('token', new JwtStrategy({
     ExtractJwt.fromAuthHeaderWithScheme('Bearer')
   ])
 }, ({ id }, done) => {
-  User.findById(id).then((user) => {
+  db.User.findByPk(id).then((user) => {
     done(null, user)
     return null
   }).catch(done)
