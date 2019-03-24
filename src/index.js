@@ -1,3 +1,4 @@
+import http from 'http'
 import { ApolloServer } from 'apollo-server-express'
 import { graphqlUploadExpress } from 'graphql-upload'
 import { jwt } from './services/passport'
@@ -15,8 +16,6 @@ const apiRoot = process.env.API_ROOT || ''
 const app = express(apiRoot, api)
 
 global.__publicdir = __dirname.replace('src', 'public')
-
-console.log(process.env.NODE_ENV)
 
 sequelize.authenticate()
   .then(async () => {
@@ -36,17 +35,37 @@ const server = new ApolloServer({
   typeDefs: schema,
   resolvers,
   uploads: false,
-  context: ({ req }) => {
-    return {
-      sequelize,
-      db,
-      user: req.user
+  context: ({ req, connection }) => {
+    if (connection) {
+      return {
+        db
+      }
+    }
+    if (req) {
+      return {
+        sequelize,
+        db,
+        user: req.user
+      }
     }
   }
 })
 
 server.applyMiddleware({ app, paths: '/graphql' })
-
+const httpServer = http.createServer(app)
+server.installSubscriptionHandlers(httpServer)
+/*
 app.listen({ port: config.get('port') }, () => {
   console.log(`Apollo server on http://localhost:${config.get('port')}/graphql`)
+})
+*/
+httpServer.listen({ port: config.get('port') }, () => {
+  console.log(`Apollo server on http://localhost:${config.get('port')}/graphql`)
+})
+
+
+
+
+httpServer.listen({ port: 4040}, () => {
+
 })

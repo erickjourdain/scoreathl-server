@@ -12,6 +12,12 @@ extend type Mutation {
   supprimerEquipe(id: ID!): Boolean!
 }
 
+extend type Subscription {
+  nouvelleEquipe(competition: ID!): SubEquipe!
+  modificationEquipe(competition: ID!): SubEquipe!
+  suppressionEquipe(competition: ID!): SubEquipe!
+}
+
 input AthleteInputFull {
   nom: String!
   prenom: String!
@@ -26,6 +32,11 @@ input AthleteInput {
   annee: Int
   genre: String
   avatar: Upload
+}
+
+type SubEquipe {
+  competition: ID!
+  equipe: ID!
 }
 
 type Equipe {

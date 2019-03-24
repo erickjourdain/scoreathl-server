@@ -1,9 +1,10 @@
-import { ApolloError, AuthenticationError } from 'apollo-server'
+import { ApolloError, AuthenticationError, withFilter } from 'apollo-server'
 import { object, string, boolean, mixed, number } from 'yup'
-import { forEach, forOwn, map, fill } from 'lodash'
+import { forOwn, fill } from 'lodash'
 import { Op } from 'sequelize'
 
 import { authorisedOrAdmin, rolesOrAdmin } from '../services/response'
+import pubsub, { EVENTS } from '../subscription'
 import storeFS from '../services/store/storeFS'
 
 export default {
@@ -112,6 +113,7 @@ export default {
           nom: args.adulte.nom.trim(),
           prenom: args.adulte.prenom.trim(),
           annee: args.adulte.annee,
+          genre: args.adulte.genre,
           avatar: avatarAdulte
         }, { transaction })
       
@@ -131,14 +133,19 @@ export default {
           nom: args.enfant.nom.trim(),
           prenom: args.enfant.prenom.trim(),
           annee: args.enfant.annee,
+          genre: args.enfant.genre,
           avatar: avatarEnfant
         }, { transaction })
       
         await equipe.setEnfant(enfant, { transaction })
         await defineCategorie(db, transaction, enfant, args.enfant)
         await defineScore(db, transaction, enfant, challenges)
-
         await transaction.commit()
+        const nouvelleEquipe = {
+          competition: competition.id,
+          equipe: equipe.id
+        }
+        pubsub.publish(EVENTS.EQUIPE.NOUVELLE, { nouvelleEquipe })
         return await db.Equipe.findByPk(equipe.id)
       } catch (error) {
         if (error) await transaction.rollback()
@@ -189,7 +196,7 @@ export default {
             },
             {
               model: db.Athlete,
-              as: 'adulte',
+              as: 'enfant',
               include: [ { model: db.Categorie }]
             },
             {
@@ -232,27 +239,9 @@ export default {
           throw new AuthenticationError(`Vous ne disposez pas des droits pour définir le statut d'une équipe.`)
         }
 
-        if (args.adulte && (args.adulte.annee || args.adulte.genre)) {
-          if (!args.adulte.genre) {
-            args.adulte.genre = equipe.adulte.Categorie.genre
-          }
-          if (!args.adulte.annee) {
-            args.adulte.annee = equipe.adulte.annee
-          }
-          await defineCategorie(db, transaction, adulte, args.adulte)
-        }
-        if (args.enfant && (args.enfant.annee || args.enfant.genre)) {
-          if (!args.enfant.genre) {
-            args.enfant.genre = equipe.enfant.Categorie.genre
-          }
-          if (!args.enfant.annee) {
-            args.enfant.annee = equipe.enfant.annee
-          }
-          await defineCategorie(db, transaction, enfant, args.enfant)
-        }
         if (args.nom) {
           const existingEquipe = await db.Equipe.findOne({
-            where: { [Op.or]: [
+            where: { [Op.and]: [
               { CompetitionId: equipe.Competition.id, nomUnique: args.nom.toLowerCase() },
               { id: { [Op.ne]: equipe.id } }
             ]}
@@ -261,6 +250,24 @@ export default {
             throw new ApolloError(`Il existe déjà une équipe avec ce nom.`)
           }
           args.nomUnique = args.nom.trim().toLowerCase()
+        }
+        if (args.adulte && (args.adulte.annee || args.adulte.genre)) {
+          if (!args.adulte.genre) {
+            args.adulte.genre = equipe.adulte.Categorie.genre
+          }
+          if (!args.adulte.annee) {
+            args.adulte.annee = equipe.adulte.annee
+          }
+          await defineCategorie(db, transaction, equipe.adulte, args.adulte)
+        }
+        if (args.enfant && (args.enfant.annee || args.enfant.genre)) {
+          if (!args.enfant.genre) {
+            args.enfant.genre = equipe.enfant.Categorie.genre
+          }
+          if (!args.enfant.annee) {
+            args.enfant.annee = equipe.enfant.annee
+          }
+          await defineCategorie(db, transaction, equipe.enfant, args.enfant)
         }
         if (args.avatar) {
           const { createReadStream, filename, mimetype } = await args.avatar
@@ -290,68 +297,103 @@ export default {
           }
         })
         if (args.adulte) {
-          await equipe.adulte.save()
+          await equipe.adulte.update(args.adulte, { transaction })
         }
         if (args.enfant) {
-          await equipe.enfant.save()
+          await equipe.enfant.update(args.enfant, { transaction })
         }
         await equipe.save()
         await transaction.commit()
+        const modificationEquipe = {
+          competition: equipe.Competition.id,
+          equipe: equipe.id
+        }
+        pubsub.publish(EVENTS.EQUIPE.MODIFICATION, { modificationEquipe })
         return db.Equipe.findByPk(equipe.id)
       } catch (err) {
         if (err) await transaction.rollback()
         throw err
       }
     },
-    supprimerEquipe: async (parent, { id }, { db, user}) => {
+    supprimerEquipe: async (parent, { id }, { db, sequelize, user}) => {
       if (!user) {
         throw new AuthenticationError(`Vous devez être logué pour enregistrer une équipe.`)
       }
-      const equipe = await db.Equipe.find({
-        where: {
-          id
-        },
-        include: [
-          'competition'
-        , {
-          models: 'adulte',
-          include: ['score']
-        }, {
-          models: 'enfant',
-          include: ['score']
-        }]
-      })
-      if (!equipe) {
-        throw new ApolloError(`L'équipe n'existe pas.`)
-      }
-      if (!authorisedOrAdmin(user, 'organisateurs')(equipe.competition) && (user.id !== equipe.proprietaire)) {
-        throw new AuthenticationError(`Vous ne disposez des droits nécessaires pour effectuer cette opération.`)
-      }
-      if (equipe.statut) {
-        throw new ApolloError(`Impossible de supprimer une équipe validée.`)
-      }
-      let authorise = true
-      map(equipe.enfant.score.resultats, res => {
-        if (res.resultat.statut) {
-          authorise = false
+      let transaction
+      try {
+        transaction = await sequelize.transaction()
+
+        const equipe = await db.Equipe.findOne({
+          where: { id },
+          include: [
+            {
+              model: db.Competition,
+              include: [ { model: db.User, as: 'organisateurs'} ]
+            },
+            {
+              model: db.Athlete,
+              as: 'enfant',
+              include: [ { model: db.Score }]
+            },
+            {
+              model: db.Athlete,
+              as: 'adulte',
+              include: [ { model: db.Score }]
+            },
+            {
+              model: db.User,
+              as: 'proprietaire'
+            }
+          ]
+        })
+        if (!equipe) {
+          throw new ApolloError(`L'équipe n'existe pas.`)
         }
-      })
-      map(equipe.adulte.score.resultats, res => {
-        if (res.resultat.statut) {
-          authorise = false
+        const suppressionEquipe = {
+          competition: equipe.Competition.id,
+          equipe: equipe.id
         }
-      })
-      if (!authorise) {
-        throw new ApolloError(`Impossible de supprimer une équipe avec des résultats enregistrés.`)
+        if (!equipe.Competition.statut) {
+          throw new ApolloError(`Impossible de supprimer une équipe d'une compétition fermée.`)
+        }
+        if (equipe.statut) {
+          throw new ApolloError(`Impossible de supprimer une équipe validée.`)
+        }
+        // vérification si l'utilisateur possède les droits pour modifier le score
+        if (user.role !== 'admin') {
+          if (!find(equipe.Competition.organisateurs, o => {
+            return o.dataValues.id === user.id
+          })) {
+            if (equipe.proprietaire.id !== user.id) {
+              throw new ApolloError(`Vous ne disposez pas des droits pour effectuer cette opération.`)
+            }
+          }
+        }
+        let authorise = true
+        for (let i = 0; i < equipe.enfant.Scores.length; i++) {
+          if (equipe.enfant.Scores[i].statut !== 0) {
+            authorise = false
+          }
+        }
+        for (let i = 0; i < equipe.adulte.Scores.length; i++) {
+          if (equipe.adulte.Scores[i].statut !== 0) {
+            authorise = false
+          }
+        }
+        if (!authorise) {
+          throw new ApolloError(`Impossible de supprimer une équipe avec des résultats enregistrés.`)
+        }
+        await db.Score.destroy({ where: { AthleteId: equipe.adulte.id } })
+        await db.Score.destroy({ where: { AthleteId: equipe.enfant.id } })
+        await db.Athlete.destroy({ where: { id: equipe.adulte.id } })
+        await db.Athlete.destroy({ where: { id: equipe.enfant.id } })
+        await db.Equipe.destroy({ where: { id: equipe.id } })
+        pubsub.publish(EVENTS.EQUIPE.SUPPRIMEE, { suppressionEquipe })
+        return true
+      } catch (err) {
+        if (err) transaction.rollback()
+        throw err
       }
-      /*
-      await db.Score.deleteOne({ _id: equipe.adulte.score })
-      await db.Score.deleteOne({ _id: equipe.enfant.score })
-      await db.Athlete.deleteOne({ _id: equipe.adulte._id })
-      await db.Athlete.deleteOne({ _id: equipe.enfant._id })
-      */
-      await db.Equipe.destroy({ id: equipe.id })
-      return true
     }
   },
   Equipe: {
@@ -365,11 +407,16 @@ export default {
       return equipe.getEnfant()
     },
     points: async (equipe, args, { db }) => {
-      const adulte = await db.Athlete.findByPk(equipe.adulte)
-      const enfant = await db.Athlete.findByPk(equipe.enfant)
-      const pointsAdulte = (await db.Score.findByPk(adulte.score)).points
-      const pointsEnfant = (await db.Score.findByPk(enfant.score)).points
-      return pointsAdulte + pointsEnfant
+      let points = 0
+      const adulte = await db.Athlete.findOne({ where: { id: equipe.adulteId }, include: [ { model: db.Score }] })
+      const enfant = await db.Athlete.findOne({ where: { id: equipe.enfantId }, include: [ { model: db.Score }] })
+      for (let i = 0; i < adulte.Scores.length; i++) {
+        points += adulte.Scores[i].points
+      }
+      for (let i = 0; i < enfant.Scores.length; i++) {
+        points += enfant.Scores[i].points
+      }
+      return points
     },
     etiquette: (equipe) => {
       return equipe.getEtiquette()
@@ -377,6 +424,32 @@ export default {
     proprietaire: (equipe) => {
       return equipe.getProprietaire()
     } 
+  },
+  Subscription: {
+    nouvelleEquipe: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(EVENTS.EQUIPE.NOUVELLE),
+        async (payload, variables) => {
+          return payload.nouvelleEquipe.competition === variables.competition
+        }
+      )
+    },
+    modificationEquipe: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(EVENTS.EQUIPE.MODIFICATION),
+        async (payload, variables) => {
+          return payload.modificationEquipe.competition === variables.competition
+        }
+      )
+    },
+    suppressionEquipe: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(EVENTS.EQUIPE.SUPPRIMEE),
+        (payload, variables) => {
+          return payload.suppressionEquipe.competition === variables.competition
+        }
+      )
+    }
   }
 }
 

@@ -11,6 +11,7 @@ type Athlete {
   nom: String!
   prenom: String!
   annee: Int!
+  genre: String!
   categorie: Categorie!
   avatar: String
   scores: [Score!]!

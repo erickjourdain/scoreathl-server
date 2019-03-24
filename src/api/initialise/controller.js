@@ -113,7 +113,8 @@ export const seed = async (req, res, next) => {
     const adulte = await db.Athlete.create({
       nom: 'jourdain',
       prenom: 'erick',
-      annee: 1969
+      annee: 1969,
+      genre: 'M'
     })
     await equipe.setAdulte(adulte)
     await defineCategorie(adulte, { genre: 'M', annee: 1969 })
@@ -122,7 +123,8 @@ export const seed = async (req, res, next) => {
     const enfant = await db.Athlete.create({
       nom: 'jourdain',
       prenom: 'christophe',
-      annee: 2009
+      annee: 2009,
+      genre: 'M'
     })
     await equipe.setEnfant(enfant)
     await defineCategorie(enfant, { genre: 'M', annee: 2009 })

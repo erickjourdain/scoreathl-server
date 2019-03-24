@@ -24,6 +24,10 @@ class Athlete extends Sequelize.Model {
           type: DataTypes.INTEGER,
           allowNull: false
         },
+        genre: {
+          type: DataTypes.ENUM('F', 'M'),
+          allowNull: false
+        },
         avatar: {
           type: DataTypes.STRING,
           defaultValue: null
