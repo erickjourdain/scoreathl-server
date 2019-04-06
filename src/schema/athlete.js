@@ -15,14 +15,19 @@ type Athlete {
   categorie: Categorie!
   avatar: String
   scores: [Score!]!
+  points: Float!
 }
 
 extend type Mutation {
   athleteResultat(athlete: ID!, resultat: ResultatInput!): Athlete!
 }
 
+extend type Subscription {
+  modificationAthlete(competition: ID!): SubEquipe
+}
+
 input ResultatInput {
-  epreuve: ID!
+  challenge: ID!
   resultats: [Float!]!
 }
 `

@@ -15,6 +15,11 @@ class Challenge extends Sequelize.Model {
           type: DataTypes.INTEGER,
           allowNull: false,
           default: 1
+        },
+        statut: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          default: true
         }
       },
       { 
@@ -24,7 +29,7 @@ class Challenge extends Sequelize.Model {
   }
   
   static associate(models) {
-    this.hasMany(models.Juge)
+    this.belongsToMany(models.User, { through: 'juge_challenge', as: 'juges' })
     this.belongsTo(models.Competition)
     this.belongsTo(models.Epreuve)
   }

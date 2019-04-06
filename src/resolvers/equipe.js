@@ -2,9 +2,9 @@ import { ApolloError, AuthenticationError, withFilter } from 'apollo-server'
 import { object, string, boolean, mixed, number } from 'yup'
 import { forOwn, fill } from 'lodash'
 import { Op } from 'sequelize'
+import pubsub, { EVENTS } from '../subscription'
 
 import { authorisedOrAdmin, rolesOrAdmin } from '../services/response'
-import pubsub, { EVENTS } from '../subscription'
 import storeFS from '../services/store/storeFS'
 
 export default {
@@ -75,14 +75,14 @@ export default {
           if (!role && args.statut) {
             throw new AuthenticationError(`Vous ne disposez pas des droits pour définir le statut d'une équipe.`)
           }
-          const equipe = await db.Equipe.findOne({ where: { competition: args.competition, nom: args.nom.toLowerCase() } })
+          const equipe = await db.Equipe.findOne({ where: { CompetitionId: args.competition, nom: args.nom.toLowerCase() } })
           if (equipe) {
             throw new ApolloError(`Il existe déjà une équipe avec ce nom dans la compétition.`)
           }
           delete args.pwd
         }
   
-        const avatar = null
+        let avatar = null
         if (args.avatar) {
           const { createReadStream, filename, mimetype } = await args.avatar
           const stream = createReadStream()
@@ -99,6 +99,8 @@ export default {
         }, { transaction })
         await equipe.setCompetition(competition, { transaction })
         await equipe.setProprietaire(user, { transaction })
+
+        if (args.etiquette) await equipe.setEtiquette(args.etiquette, { transaction })
   
         let challenges = await competition.getChallenges()
         let avatarAdulte = null
@@ -238,6 +240,8 @@ export default {
         if (!organisateur && args.statut) {
           throw new AuthenticationError(`Vous ne disposez pas des droits pour définir le statut d'une équipe.`)
         }
+
+        if (args.etiquette) await equipe.setEtiquette(args.etiquette, { transaction })
 
         if (args.nom) {
           const existingEquipe = await db.Equipe.findOne({

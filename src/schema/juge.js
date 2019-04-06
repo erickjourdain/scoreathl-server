@@ -3,9 +3,8 @@ import { gql } from 'apollo-server-express'
 export default gql`
 type Juge {
   id: ID!
-  competition: Competition!
   user: User!
-  epreuves: [Epreuve!]!
+  challenge: Challenge!
 }
 
 extend type Query {
@@ -14,7 +13,7 @@ extend type Query {
 
 input JugeInput {
   user: ID!
-  epreuves: [ID!]!
+  challenges: [ID!]!
 }
 
 extend type Mutation {

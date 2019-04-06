@@ -95,7 +95,8 @@ export const seed = async (req, res, next) => {
     await competition.setOrganisateurs([admin])
     for (let epreuve of epreuves) {
       const challenge = await db.Challenge.create({
-        essais: getRandomInt(1, 3)
+        essais: epreuve.maxEssais,
+        statut: true
       })
       await challenge.setCompetition(competition)
       await challenge.setEpreuve(epreuve)

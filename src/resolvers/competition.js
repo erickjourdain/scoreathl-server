@@ -15,11 +15,13 @@ export default {
     }
   },
   Mutation: {
-    creerCompetition: async (parent, args, { db, user }) => {
+    creerCompetition: async (parent, args, { db, sequelize, user }) => {
+      if (!rolesOrAdmin(user, ['organisateur'])) {
+        throw new AuthenticationError(`Vous ne disposez pas des droits nécessaires pour effectuer cette opération.`)
+      }
+      let transaction
       try {
-        if (!rolesOrAdmin(user, ['organisateur'])) {
-          throw new AuthenticationError(`Vous ne disposez pas des droits nécessaires pour effectuer cette opération.`)
-        }
+        transaction = await sequelize.transaction()
         const schema = object().shape({
           nom: string().required().min(5, `Le nom de la compétition doit comporter au moins 5 caractères.`),
           emplacement: string().required().min(5, `L'emplacement de la compétition doit comporter au moins 5 caractères.`),
@@ -30,7 +32,8 @@ export default {
           organisateurs: array().of(string().required()).required(),
           challenges: array().of(object().shape({
             epreuve: string().required(),
-            essais: number().integer().positive().required()
+            essais: number().integer().positive().required(),
+            statut: boolean().required()
           }).required()).required()
         })
         await schema.validate(args)
@@ -50,9 +53,9 @@ export default {
           if (!epreuve) {
             throw new ApolloError(`"${args.challenges[i].epreuve}" n'est pas une épreuve valide.`)
           } else {
-            const challenge = db.Challenge.build({ essais: args.challenges[i].essais })
-            await challenge.save()
-            await challenge.setEpreuve(epreuve)
+            const challenge = db.Challenge.build({ essais: args.challenges[i].essais, statut: args.challenges[i].statut })
+            await challenge.save({ transaction })
+            await challenge.setEpreuve(epreuve, { transaction })
             await challenges.push(challenge)
           }
         }
@@ -63,11 +66,13 @@ export default {
           const { imagename } = await storeFS({ stream, filename })
           args.image = imagename
         }
-        let competition = await db.Competition.create(args)
-        await competition.addOrganisateurs(organisateurs)
-        await competition.addChallenges(challenges)
+        let competition = await db.Competition.create(args, { transaction })
+        await competition.addOrganisateurs(organisateurs, { transaction })
+        await competition.addChallenges(challenges, { transaction })
+        await transaction.commit()
         return await db.Competition.findByPk(competition.id)
       } catch (err) {
+        if (err) await transaction.rollback()
         throw err
       }
     },
@@ -89,7 +94,8 @@ export default {
           organisateurs: array().of(string().required()),
           challenges: array().of(object().shape({
             epreuve: string().required(),
-            essais: number().integer().positive().required()
+            essais: number().integer().positive().required(),
+            statut: boolean().required()
           }).required())
         })
         await schema.validate(args)
@@ -109,18 +115,21 @@ export default {
           }
         }
         if (args.challenges) {
-          const scores = await sequelize.query(`SELECT sc.*
-            FROM Competitions AS cp
-            INNER JOIN Equipes AS eq
-            ON eq.CompetitionId = cp.id
-            INNER JOIN Athletes AS at
-            ON (at.id = eq.enfantId or at.id = eq.adulteId)
-            INNER JOIN Scores AS sc
-            ON sc.AthleteId = at.id
-            WHERE cp.id = "${competition.id}"
-            AND sc.statut != 0`, { type: sequelize.QueryTypes.SELECT})
-          if (scores.length) {
-            throw new ApolloError(`Impossible de mettre à jour les épreuves, des résultats sont déjà enregistrés pour celles-ci.`)
+          const athletes = await db.Equipe.findAll({ where: { CompetitionId: competition.id } })
+          if (athletes.length) {
+            const scores = await sequelize.query(`SELECT sc.*
+              FROM Competitions AS cp
+              INNER JOIN Equipes AS eq
+              ON eq.CompetitionId = cp.id
+              INNER JOIN Athletes AS at
+              ON (at.id = eq.enfantId or at.id = eq.adulteId)
+              INNER JOIN Scores AS sc
+              ON sc.AthleteId = at.id
+              WHERE cp.id = "${competition.id}"
+              AND sc.statut != 0`, { type: sequelize.QueryTypes.SELECT})
+            if (scores.length) {
+              throw new ApolloError(`Impossible de mettre à jour les épreuves, des résultats sont déjà enregistrés pour celles-ci.`)
+            }
           }
         }
         if (args.image) {
@@ -139,30 +148,15 @@ export default {
         }
         if (args.challenges) {
           for (let i = 0; i < args.challenges.length; i++) {
-            const challenge = await db.Challenge.findByPk(args.challenges[i].epreuve)
-            if (challenge && challenge.CompetitionId) {
+            const challenge = await db.Challenge.findByPk(args.challenges[i].id)
+            if (challenge && challenge.CompetitionId === competition.id) {
               challenge.essais = args.challenges[i].essais
+              challenge.statut = args.challenges[i].statut
               await challenge.save({ transaction })
-              const scores = await db.Score.findAll({ where: { ChallengeId: args.challenges[i].epreuve } })
+              const scores = await db.Score.findAll({ where: { ChallengeId: challenge.id } })
               for (let j = 0; j < scores.length; j++) {
                 scores[j].marques = fill(Array(args.challenges[i].essais), 0)
                 await scores[j].save({ transaction })
-              }
-            } else {
-              const newChallenge = await challenge.create({ essais: args.challenges[i].essais }, { transaction })
-              await newChallenge.setEpreuve(args.challenges[i].epreuve, { transaction })
-              const equipes = await equipes.findAll({ where: { CompetitionId: competition.id } })
-              for (let j = 0; j < equipes.length; j++) {
-                const scoreAdulte = await db.Score.create({
-                  marques: fill(Array(args.challenges[i].essais), 0) 
-                }, { transaction })
-                await scoreAdulte.setChallenge(args.challenges[i].epreuve, { transaction })
-                await scoreAdulte.setAthlete(equipes[j].getAdulte(), { transaction })
-                const scoreEnfant = await db.Score.create({
-                  marques: fill(Array(args.challenges[i].essais), 0) 
-                }, { transaction })
-                await scoreEnfant.setChallenge(args.challenges[i].epreuve, { transaction })
-                await scoreEnfant.setAthlete(equipes[j].getEnfant(), { transaction })
               }
             }
           }
@@ -199,9 +193,6 @@ export default {
     }
   },
   Competition: {
-    juges: (competition) => {
-      return competition.getJuges()
-    },
     organisateurs: (competition) => {
       return competition.getOrganisateurs()
     },

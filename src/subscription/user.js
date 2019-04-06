@@ -1,0 +1,2 @@
+export const NOUVEAU = 'NOUVEAU_USER'
+export const MODIFICATION = 'MODIFICATION_USER'

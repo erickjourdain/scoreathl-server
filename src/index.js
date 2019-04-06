@@ -15,7 +15,7 @@ import db from './models'
 const apiRoot = process.env.API_ROOT || ''
 const app = express(apiRoot, api)
 
-global.__publicdir = __dirname.replace('src', 'public')
+global.__publicdir = (process.env.NODE_ENV === 'production') ? __dirname.replace('dist', 'public') : __dirname.replace('src', 'public')
 
 sequelize.authenticate()
   .then(async () => {
@@ -63,9 +63,8 @@ httpServer.listen({ port: config.get('port') }, () => {
   console.log(`Apollo server on http://localhost:${config.get('port')}/graphql`)
 })
 
-
-
-
+/*
 httpServer.listen({ port: 4040}, () => {
 
 })
+*/

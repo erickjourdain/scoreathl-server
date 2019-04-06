@@ -10,10 +10,12 @@ type Challenge {
   id: ID!
   epreuve: Epreuve!
   essais: Int!
+  statut: Boolean!
 }
 
 input ChallengeInput {
   epreuve: ID!
   essais: Int!
+  statut: Boolean!
 }
 `

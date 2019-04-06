@@ -57,13 +57,11 @@ export default {
     }
   },
   Juge: {
-    user: (juge, args, { models }) => {
-      return models.User.findById(juge.user)
+    user: (juge, args, { db }) => {
+      return db.User.findByPk(juge.UserId)
     },
-    epreuves: (juge, args, { models }) => {
-      return map(juge.epreuves, epreuve => {
-        return models.Epreuve.findById(epreuve)
-      })
+    challenge: (juge, args, { db }) => {
+      return db.Challenge.findByPk(juge.ChallengeId)
     }
   }
 }

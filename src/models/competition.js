@@ -78,9 +78,10 @@ class Competition extends Sequelize.Model {
   }
 
   static associate(models) {
-    this.belongsToMany(models.User, { through: 'organisateur_competition', as: 'organisateurs' }),
+    this.belongsToMany(models.User, { through: 'organisateur_competition', as: 'organisateurs' })
     this.hasMany(models.Equipe)
     this.hasMany(models.Challenge)
+    this.hasMany(models.Juge)
   }
 }
 

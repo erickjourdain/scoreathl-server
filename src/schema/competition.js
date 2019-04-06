@@ -16,7 +16,6 @@ type Competition {
   pwd: String!
   challenges: [Challenge!]!
   organisateurs: [User!]!
-  juges: [Juge!]
   equipes: [Equipe!]
 }
 

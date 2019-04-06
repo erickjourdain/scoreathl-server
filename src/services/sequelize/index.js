@@ -16,11 +16,15 @@ let sequelize = new Sequelize(
   postgresql.database,
   postgresql.username,
   postgresql.password,
+  postgresql.options
+  /*
   {
     host: postgresql.host,
     dialect: 'postgres',
+    logging: !postgresql.logging,
     pool: postgresql.pool
   }
+  */
 )
 
 export default sequelize

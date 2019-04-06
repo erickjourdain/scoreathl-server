@@ -19,7 +19,7 @@ class Juge extends Sequelize.Model {
   }
   
   static associate(models) {
-    // this.belongsTo(models.Competition, { as: 'competition' })
+    this.belongsTo(models.Competition, { as: 'competition' })
     this.belongsTo(models.Challenge)
     this.belongsTo(models.User)
     // this.belongsToMany(models.Challenge, { through: 'challenge_juge', as: 'challenges' })

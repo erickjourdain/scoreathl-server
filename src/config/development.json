@@ -19,12 +19,16 @@
     "database": "scoreathl",
     "username": "scoreathl",
     "password": "IMz0P143",
-    "host": "localhost",
-    "pool": {
-      "max": 5,
-      "min": 0,
-      "acquire": 30000,
-      "idle": 10000
+    "options": {
+      "host": "localhost",
+      "logging": null,
+      "dialect": "postgres",
+      "pool": {
+        "max": 5,
+        "min": 0,
+        "acquire": 30000,
+        "idle": 10000
+      }  
     }
   },
   "auth": {

@@ -6,7 +6,6 @@ extend type Query {
   user(id: ID!): User
   users: [User!],
   usersRole(roles: [String!]!): [User]
-  loginPassword(nom: String!, password: String!): Login
 }
 
 type User {
@@ -29,7 +28,13 @@ type Login {
 extend type Mutation {
   creerUser(nom: String!, email: String!, password: String!, role: String, avatar: Upload): User
   majUser(id: ID!, nom: String, email: String, role: String, avatar: Upload): User
+  loginPassword(nom: String!, password: String!): Login
   loginGoogle(token: String!): Login
   loginFacebook(token: String!): Login
+}
+
+extend type Subscription {
+  nouveauUser: User
+  modificationUser: User
 }
 `

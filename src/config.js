@@ -76,32 +76,44 @@ var config = convict({
       format: String,
       default: "xxxxxxxx"
     },
-    host: {
-      doc: "database host",
-      format: String,
-      default: "xxxxxxxx"
-    },
-    pool: {
-      max: {
-        doc: 'Maximum pool connexion',
-        format: 'nat',
-        default: 5
+    options: {
+      host: {
+        doc: "database host",
+        format: String,
+        default: "xxxxxxxx"
       },
-      min: {
-        doc: 'Minimu pool connexion',
-        format: 'nat',
-        default: 0
+      logging: {
+        doc: 'Logging output',
+        format: '*',
+        default: console.log
       },
-      acquire: {
-        doc: 'Pool acquire',
-        format: 'nat',
-        default: 30000
+      dialect: {
+        doc: 'database dialect',
+        format: String,
+        default: 'postgres'
       },
-      idle: {
-        doc: 'Pool idle',
-        format: 'nat',
-        default: 10000
-      }
+      pool: {
+        max: {
+          doc: 'Maximum pool connexion',
+          format: 'nat',
+          default: 5
+        },
+        min: {
+          doc: 'Minimu pool connexion',
+          format: 'nat',
+          default: 0
+        },
+        acquire: {
+          doc: 'Pool acquire',
+          format: 'nat',
+          default: 30000
+        },
+        idle: {
+          doc: 'Pool idle',
+          format: 'nat',
+          default: 10000
+        }
+      }  
     }
   },
   auth: {

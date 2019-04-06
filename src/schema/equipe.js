@@ -13,9 +13,9 @@ extend type Mutation {
 }
 
 extend type Subscription {
-  nouvelleEquipe(competition: ID!): SubEquipe!
-  modificationEquipe(competition: ID!): SubEquipe!
-  suppressionEquipe(competition: ID!): SubEquipe!
+  nouvelleEquipe(competition: ID!): SubEquipe
+  modificationEquipe(competition: ID!): SubEquipe
+  suppressionEquipe(competition: ID!): SubEquipe
 }
 
 input AthleteInputFull {

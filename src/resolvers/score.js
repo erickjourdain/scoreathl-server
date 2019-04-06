@@ -1,5 +1,3 @@
-import { map } from 'lodash'
-
 export default {
   Score: {
     challenge: (score) => {
