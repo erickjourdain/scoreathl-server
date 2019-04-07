@@ -88,7 +88,7 @@ class User extends Sequelize.Model {
   }
 
   static createFromService ({ service, id, email, name, picture }) {
-    return User.find({
+    return User.findOne({
       [Op.or]: [{ [`${service}`]: id }, { email } ]
     })
       .then(user => {

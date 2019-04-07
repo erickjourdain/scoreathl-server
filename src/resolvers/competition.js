@@ -1,6 +1,7 @@
 import { AuthenticationError, ApolloError } from 'apollo-server'
 import { object, string, boolean, date, array, mixed, number } from 'yup'
 import { forOwn, fill } from 'lodash'
+import { Op } from 'sequelize'
 
 import { rolesOrAdmin, authorisedOrAdmin } from '../services/response'
 import storeFS from '../services/store/storeFS'
@@ -117,16 +118,16 @@ export default {
         if (args.challenges) {
           const athletes = await db.Equipe.findAll({ where: { CompetitionId: competition.id } })
           if (athletes.length) {
-            const scores = await sequelize.query(`SELECT sc.*
-              FROM Competitions AS cp
-              INNER JOIN Equipes AS eq
-              ON eq.CompetitionId = cp.id
-              INNER JOIN Athletes AS at
-              ON (at.id = eq.enfantId or at.id = eq.adulteId)
-              INNER JOIN Scores AS sc
-              ON sc.AthleteId = at.id
-              WHERE cp.id = "${competition.id}"
-              AND sc.statut != 0`, { type: sequelize.QueryTypes.SELECT})
+            const scores = await sequelize.query(`SELECT "sc"."id"
+              FROM "Competitions" AS "cp"
+              INNER JOIN "Equipes" AS "eq"
+              ON "eq"."CompetitionId" = "cp"."id"
+              INNER JOIN "Athletes" AS "at"
+              ON ("at"."id" = "eq"."enfantId" or "at"."id" = "eq"."adulteId")
+              INNER JOIN "Scores" AS "sc"
+              ON "sc"."AthleteId" = "at"."id"
+              WHERE "cp"."id" = '${competition.id}'
+              AND "sc"."statut" != 0`, { type: sequelize.QueryTypes.SELECT})
             if (scores.length) {
               throw new ApolloError(`Impossible de mettre à jour les épreuves, des résultats sont déjà enregistrés pour celles-ci.`)
             }
@@ -138,11 +139,13 @@ export default {
           const { imagename } = await storeFS({ stream, filename })
           args.image = imagename
         }
+        const data = {}
         forOwn(args, (value, key) => {
           if (key !== 'organisateurs' && key !== 'challenges')
-          competition[key] = value
+          data[key] = value
         })
-        await competition.save({ transaction })
+        await db.Competition.update(data, { where: { id: args.id } }, { transaction })
+        // await competition.save({ transaction })
         if (args.organisateurs) {
           await competition.setOrganisateurs(args.organisateurs, { transaction })
         }

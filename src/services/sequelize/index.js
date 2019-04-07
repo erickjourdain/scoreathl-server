@@ -12,6 +12,8 @@ let sequelize = new Sequelize({
 })
 */
 
+postgresql.options.logging = (postgresql.options.logging) ? console.log : postgresql.options.logging
+
 let sequelize = new Sequelize(
   postgresql.database,
   postgresql.username,

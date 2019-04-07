@@ -21,7 +21,7 @@
     "password": "IMz0P143",
     "options": {
       "host": "localhost",
-      "logging": null,
+      "logging": "consoleLog",
       "dialect": "postgres",
       "pool": {
         "max": 5,
