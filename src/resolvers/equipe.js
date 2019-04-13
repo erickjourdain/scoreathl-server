@@ -306,7 +306,7 @@ export default {
         if (args.enfant) {
           await equipe.enfant.update(args.enfant, { transaction })
         }
-        await equipe.save()
+        await equipe.save({ transaction })
         await transaction.commit()
         const modificationEquipe = {
           competition: equipe.Competition.id,

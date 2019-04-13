@@ -31,6 +31,8 @@ extend type Mutation {
   loginPassword(nom: String!, password: String!): Login
   loginGoogle(token: String!): Login
   loginFacebook(token: String!): Login
+  forgetPwd(email: String!): Boolean
+  resetPwd(password: String!, token: String!): Boolean
 }
 
 extend type Subscription {

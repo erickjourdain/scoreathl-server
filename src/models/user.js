@@ -45,21 +45,32 @@ class User extends Sequelize.Model {
           allowNull: false
         },
         google: {
-          type: DataTypes.STRING
+          type: DataTypes.STRING,
+          defaultValue: null
         },
         facebook: {
-          type: DataTypes.STRING
+          type: DataTypes.STRING,
+          defaultValue: null
         },
         role: {
           type: DataTypes.ENUM(roles),
           defaultValue: 'athlète'
         },
         avatar: {
-          type: DataTypes.STRING
+          type: DataTypes.STRING,
+          defaultValue: null
+        },
+        resetpwdtoken: {
+          type: Sequelize.UUID,
+          defaultValue: null
+        },
+        validtoken: {
+          type: DataTypes.DATE,
+          defaultValue: null
         }
       },
       { 
-        sequelize,
+        sequelize /*,
         hooks: {
           beforeSave: async (user) => {
             if (user.password) { 
@@ -67,7 +78,28 @@ class User extends Sequelize.Model {
                 throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
               } else {
                 const env = process.env.NODE_ENV || 'development'
+                */
                 /* istanbul ignore next */
+                /*
+                const rounds = env === 'test' ? 1 : 9
+                try {
+                  let hash = await bcrypt.hash(user.password, rounds)
+                  user.password = hash
+                } catch (err) {
+                  throw err
+                }
+              }
+            }
+          },
+          beforeBulkUpdate: async (user) => {
+            if (user.password) { 
+              if (user.password.length < 6) {
+                throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
+              } else {
+                const env = process.env.NODE_ENV || 'development'
+                */
+                /* istanbul ignore next */
+                /*
                 const rounds = env === 'test' ? 1 : 9
                 try {
                   let hash = await bcrypt.hash(user.password, rounds)
@@ -78,7 +110,7 @@ class User extends Sequelize.Model {
               }
             }
           }
-        }
+        }*/
       }
     )
   }
@@ -88,8 +120,10 @@ class User extends Sequelize.Model {
   }
 
   static createFromService ({ service, id, email, name, picture }) {
-    return User.findOne({
-      [Op.or]: [{ [`${service}`]: id }, { email } ]
+    return User.findOne({ 
+      where: {
+        [Op.or]: [{ [`${service}`]: id }, { email } ]
+      } 
     })
       .then(user => {
         if (user) {

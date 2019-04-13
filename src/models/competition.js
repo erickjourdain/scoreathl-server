@@ -44,7 +44,7 @@ class Competition extends Sequelize.Model {
         }
       },
       { 
-        sequelize,
+        sequelize /*,
         hooks: {
           beforeSave: async (competition) => {
             if (competition.pwd) { 
@@ -52,7 +52,9 @@ class Competition extends Sequelize.Model {
                 throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
               } else {
                 const env = process.env.NODE_ENV || 'development'
+                */
                 /* istanbul ignore next */
+                /*
                 const rounds = env === 'test' ? 1 : 9
                 try {
                   let hash = await bcrypt.hash(competition.pwd, rounds)
@@ -63,7 +65,7 @@ class Competition extends Sequelize.Model {
               }
             }
           }
-        }
+        } */
       }
     )
   }

@@ -1,6 +1,7 @@
 {
   "env": "development",
   "port": 4000,
+  "url": "http://localhost:8080",
   "secret": {
     "master": "eRh#8G36_eH2",
     "jwt": "p5OiT*7sd"
@@ -38,7 +39,8 @@
     },
     "google": {
       "clientId": "592532701438-n1j1se73q1a8ourksfna9bridifbp6ce.apps.googleusercontent.com",
-      "clientSecret": "ubMqzabVY49nEmAUDIwtWNYm"
+      "clientSecret": "ubMqzabVY49nEmAUDIwtWNYm",
+      "refreshToken": "1/dhvcsMIbL7ovS-Qt4TsTI-NF4_2RdZd4uGF2Ks-C37sf6f0Mj_6mbWWVYY4d8cYw"
     }
   }
 }

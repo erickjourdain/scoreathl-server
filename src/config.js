@@ -14,6 +14,11 @@ var config = convict({
     env: 'PORT',
     arg: 'port'
   },
+  url: {
+    doc: `url de l'application.`,
+    format: 'url',
+    default: 'http://localhost'
+  },
   secret: {
     master: {
       doc: `Clef principale de l'application.`,
@@ -139,7 +144,12 @@ var config = convict({
         doc: `Clef secrète de l'application google.`,
         format: 'String',
         default: 'google_secret'
-      }
+      },
+      refreshToken: {
+        doc: `Refresh token.`,
+        format: 'String',
+        default: 'refresh_token'
+      },
     }
   }
 })

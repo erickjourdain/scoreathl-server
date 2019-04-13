@@ -4,6 +4,7 @@ import { forOwn, fill } from 'lodash'
 import { Op } from 'sequelize'
 
 import { rolesOrAdmin, authorisedOrAdmin } from '../services/response'
+import hash from '../services/hash'
 import storeFS from '../services/store/storeFS'
 
 export default {
@@ -67,6 +68,7 @@ export default {
           const { imagename } = await storeFS({ stream, filename })
           args.image = imagename
         }
+        args.pwd = await hash(args.pwd)
         let competition = await db.Competition.create(args, { transaction })
         await competition.addOrganisateurs(organisateurs, { transaction })
         await competition.addChallenges(challenges, { transaction })
@@ -133,6 +135,7 @@ export default {
             }
           }
         }
+        if (args.pwd) args.pwd = await hash(args.pwd)
         if (args.image) {
           const { createReadStream, filename, mimetype } = await args.image
           const stream = createReadStream()
@@ -145,7 +148,6 @@ export default {
           data[key] = value
         })
         await db.Competition.update(data, { where: { id: args.id } }, { transaction })
-        // await competition.save({ transaction })
         if (args.organisateurs) {
           await competition.setOrganisateurs(args.organisateurs, { transaction })
         }

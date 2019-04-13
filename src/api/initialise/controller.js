@@ -1,6 +1,7 @@
 import { string, object } from 'yup'
 import { fill } from 'lodash'
 
+import hash from '../../services/hash'
 import db from '../../models'
 import epreuves from './data/epreuves'
 import categories from './data/categories'
@@ -54,6 +55,7 @@ export const createUser = async ({ body }, res, next) => {
       email: string().required().email(),
     })
     await schema.isValid(body)
+    body.password = await hash(body.password)
     body.role = 'admin'
     await db.User.create(body)
     next()
