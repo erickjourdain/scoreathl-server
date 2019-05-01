@@ -7,7 +7,7 @@ import Etiquette from './etiquette'
 import Notation from './notation'
 import Score from './score'
 import User from './user'
-// import Resultat from './resultat'
+// import Message from './message'
 import Juge from './juge'
 import Categorie from './categorie'
 import Competition from './competition'
@@ -21,7 +21,7 @@ const models = {
   Notation: Notation.init(sequelize, Sequelize),
   Score: Score.init(sequelize, Sequelize),
   User: User.init(sequelize, Sequelize),
-  // Resultat: Resultat.init(sequelize, Sequelize),
+  // Message: Message.init(sequelize, Sequelize),
   Juge: Juge.init(sequelize, Sequelize),
   Categorie: Categorie.init(sequelize, Sequelize),
   Competition: Competition.init(sequelize, Sequelize),

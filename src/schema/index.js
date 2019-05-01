@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-express'
 import userSchema from './user'
-//import messageSchema from './message'
+import messageSchema from './message'
 import epreuveSchema from './epreuve'
 import categorieSchema from './categorie'
 import notationSchema from './notation'
@@ -33,7 +33,7 @@ const linkSchema = gql`
 export default [
   linkSchema,
   userSchema, 
-  // messageSchema,
+  messageSchema,
   epreuveSchema,
   categorieSchema,
   notationSchema,

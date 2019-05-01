@@ -1,6 +1,6 @@
 import { AuthenticationError, ApolloError } from 'apollo-server'
 import { object, string, mixed } from 'yup'
-import { map, forOwn } from 'lodash'
+import { map } from 'lodash'
 import { Op } from 'sequelize'
 import uuid from 'uuid/v4'
 
@@ -14,9 +14,6 @@ import * as facebookService from '../services/facebook'
  
 export default {
   Query: {
-    me: (parent, args, { user }) => {
-      return user
-    },
     user: async (parent, { id }, { db, user }) => {
       const requestedUser = await db.User.findByPk(id)
       return (user && user.role === 'admin') ? requestedUser.view(true) : requestedUser.view()
@@ -34,9 +31,25 @@ export default {
         map(users, u => usersRole.push(u))
       }
       return usersRole
+    },
+    usersConnected: async (parent, args, { db, user }) => {
+      const users= await db.User.findAll({ where: { connecte: true } })
+      map(users, u => (user && user.role === 'admin') ? u.view(true) : u.view())
+      return users
     }
   },
   Mutation: {
+    me: async (parent, args, { user, db }) => {
+      try {
+        if (!user) throw new AuthenticationError('Impossible de se reconnecter automatiquement.')
+        await db.User.update({ connecte: true }, { where: { id: user.id } })
+        pubsub.publish(EVENTS.USER.CONNECTE, { connecteUser: user.view() })
+        return user
+      }
+      catch (err) {
+        throw(err)
+      }
+    },
     creerUser: async (parent, args, { db, user }) => {
       const schema = object().shape({
         nom: string().required().min(3, `Le nom de l'athlète' doit comporter au moins 3 caractères.`),
@@ -84,7 +97,6 @@ export default {
         }
       }
       if (args.nom) args.nom = args.nom.trim()
-
       await db.User.update(args, { where: { id: args.id } })
       const modificationUser = await db.User.findByPk(args.id)
       pubsub.publish(EVENTS.USER.MODIFICATION, { modificationUser: modificationUser.view() })
@@ -105,6 +117,8 @@ export default {
         throw new AuthenticationError(`Erreur d'indentification.`)
       }
       const token = await sign(user.id)
+      await db.User.update({ connecte: true }, { where: { id: user.id } })
+      pubsub.publish(EVENTS.USER.CONNECTE, { connecteUser: user.view() })
       return { user: user.view(true), token }
     },
     loginGoogle: async (parent, { token }, { db }) => {
@@ -118,13 +132,15 @@ export default {
         }
         const user = await db.User.createFromService(googleUser)
         const userToken = await sign(user.id)
+        await db.User.update({ connecte: true }, { where: { id: user.id } })
+        pubsub.publish(EVENTS.USER.CONNECTE, { connecteUser: user.view() })
         return { user: user.view(true), token: userToken}
       } catch (err) {
         throw err
       }
     },
     loginFacebook: async (parent, { token }, { db }) => {
-        try {
+      try {
         if (!token) {
           throw new ApolloError('Aucun token fourni.')
         }
@@ -134,10 +150,24 @@ export default {
         }
         const user = await db.User.createFromService(facebookUser)
         const userToken = await sign(user.id)
-        return { user: user.view(true), token: userToken}
-        } catch (err) {
-          throw err
+        await db.User.update({ connecte: true }, { where: { id: user.id } })
+        pubsub.publish(EVENTS.USER.CONNECTE, { connecteUser: user.view() })
+        return { user: user.view(true), token: userToken }
+      } catch (err) {
+        throw err
+      }
+    },
+    logout: async (parent, args, { user, db }) => {
+      try {
+        if (!user) {
+          throw new ApolloError('Aucun utilisateur connecté')
         }
+        await db.User.update({ connecte: false }, { where: { id: user.id } })
+        pubsub.publish(EVENTS.USER.DECONNECTE, { deconnecteUser: user.id })
+        return true
+      } catch (error) {
+        throw error
+      }
     },
     forgetPwd: async (parent, { email }, { db }) => {
       try {
@@ -209,6 +239,12 @@ export default {
     },
     modificationUser: {
       subscribe:() => pubsub.asyncIterator(EVENTS.USER.MODIFICATION)
+    },
+    connecteUser: {
+      subscribe: () => pubsub.asyncIterator(EVENTS.USER.CONNECTE)
+    },
+    deconnecteUser: {
+      subscribe: () => pubsub.asyncIterator(EVENTS.USER.DECONNECTE)
     }
   }
 }

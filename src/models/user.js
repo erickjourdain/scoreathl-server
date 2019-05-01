@@ -60,6 +60,10 @@ class User extends Sequelize.Model {
           type: DataTypes.STRING,
           defaultValue: null
         },
+        connecte: {
+          type: DataTypes.BOOLEAN,
+          defaultValue: false
+        },
         resetpwdtoken: {
           type: Sequelize.UUID,
           defaultValue: null
@@ -70,47 +74,7 @@ class User extends Sequelize.Model {
         }
       },
       { 
-        sequelize /*,
-        hooks: {
-          beforeSave: async (user) => {
-            if (user.password) { 
-              if (user.password.length < 6) {
-                throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
-              } else {
-                const env = process.env.NODE_ENV || 'development'
-                */
-                /* istanbul ignore next */
-                /*
-                const rounds = env === 'test' ? 1 : 9
-                try {
-                  let hash = await bcrypt.hash(user.password, rounds)
-                  user.password = hash
-                } catch (err) {
-                  throw err
-                }
-              }
-            }
-          },
-          beforeBulkUpdate: async (user) => {
-            if (user.password) { 
-              if (user.password.length < 6) {
-                throw (new Error('Le mot de passe doit contenir au moins 6 caractères'))
-              } else {
-                const env = process.env.NODE_ENV || 'development'
-                */
-                /* istanbul ignore next */
-                /*
-                const rounds = env === 'test' ? 1 : 9
-                try {
-                  let hash = await bcrypt.hash(user.password, rounds)
-                  user.password = hash
-                } catch (err) {
-                  throw err
-                }
-              }
-            }
-          }
-        }*/
+        sequelize
       }
     )
   }

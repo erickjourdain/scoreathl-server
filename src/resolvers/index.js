@@ -1,6 +1,6 @@
 import dateResolvers from './date'
 import userResolvers from './user'
-// import messageResolvers from './message'
+import messageResolvers from './message'
 import epreuveResolvers from './epreuve'
 import categorieResolvers from './categorie'
 import notationResolvers from './notation'
@@ -15,7 +15,7 @@ import challengeResolvers from './challenge'
 export default [
   dateResolvers,
   userResolvers, 
-  // messageResolvers,
+  messageResolvers,
   epreuveResolvers,
   categorieResolvers,
   notationResolvers,

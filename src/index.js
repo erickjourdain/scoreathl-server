@@ -1,8 +1,8 @@
 import http from 'http'
 import { ApolloServer } from 'apollo-server-express'
 import { graphqlUploadExpress } from 'graphql-upload'
-import { jwt } from './services/passport'
 
+import { jwt } from './services/passport'
 import config from './config'
 import sequelize from './services/sequelize'
 import express from './services/express'
@@ -54,17 +54,7 @@ const server = new ApolloServer({
 server.applyMiddleware({ app, paths: '/graphql' })
 const httpServer = http.createServer(app)
 server.installSubscriptionHandlers(httpServer)
-/*
-app.listen({ port: config.get('port') }, () => {
-  console.log(`Apollo server on http://localhost:${config.get('port')}/graphql`)
-})
-*/
+
 httpServer.listen({ port: config.get('port') }, () => {
   console.log(`Apollo server on http://localhost:${config.get('port')}/graphql`)
 })
-
-/*
-httpServer.listen({ port: 4040}, () => {
-
-})
-*/

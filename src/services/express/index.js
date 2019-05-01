@@ -14,7 +14,6 @@ export default (apiRoot, routes) => {
     app.use(cors())
     app.use(compression())
     app.use(morgan('dev'))
-    console.log(env)
   }
 
   app.use(express.static('public'))
