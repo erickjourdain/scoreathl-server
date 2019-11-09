@@ -1,5 +1,5 @@
 import { ApolloError, AuthenticationError, withFilter } from 'apollo-server'
-import { object, string, boolean, mixed, number } from 'yup'
+import { object, string, boolean, mixed, number, date } from 'yup'
 import { forOwn, fill } from 'lodash'
 import { Op } from 'sequelize'
 import pubsub, { EVENTS } from '../subscription'
@@ -12,12 +12,41 @@ export default {
     equipe: (parent, { id }, { db }) => {
       return db.Equipe.findByPk(id)
     },
-    competitionEquipes: (parent, { id, statut }, { db }) => {
-      const args = { competition: id }
-      if (typeof(statut) === 'boolean') {
-        args.statut = statut
+    competitionEquipes: async (parent, args, { db }) => {
+      try {
+        const schema = object().shape({
+          competition: string().required(),
+          cursor: date(),
+          limit: number() 
+        }).required()
+        await schema.validate(args)
+        let query = {
+          order: [['createdAt', 'ASC']],
+          limit: (args.limit) ? args.limit : 10
+        }
+        query = (args.cursor) ? {
+          ...query,
+          where: { 
+            CompetitionId: args.competition,
+            createdAt: {
+              [Op.gt]: (args.cursor) ? args.cursor : new Date()
+            }
+          }
+        } : {
+          ...query,
+          where: { 
+            CompetitionId: args.competition
+          }
+        }
+        const equipes = await db.Equipe.findAll(query)
+        return {
+          equipes,
+          endCursor: (equipes.length) ? equipes[equipes.length - 1].createdAt : null
+        }
       }
-      return db.Equipe.find(args)
+      catch (err) {
+        throw (err)
+      }
     }
   },
   Mutation: {

@@ -3,7 +3,7 @@ import { gql } from 'apollo-server-express'
 export default gql`
 extend type Query {
   equipe(id: ID!): Equipe!
-  competitionEquipes(id: ID!, statut: Boolean): [Equipe]!
+  competitionEquipes(competition: ID!, cursor: Date, limit: Int): EquipeConnection!
 }
 
 extend type Mutation {
@@ -34,6 +34,11 @@ input AthleteInput {
   avatar: Upload
 }
 
+type EquipeConnection {
+  equipes: [Equipe]!
+  endCursor: Date 
+}
+
 type SubEquipe {
   competition: ID!
   equipe: ID!
@@ -50,5 +55,6 @@ type Equipe {
   statut: Boolean!
   points: Int!
   proprietaire: User!
+  createdAt: Date!
 }
 `
