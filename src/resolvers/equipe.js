@@ -350,7 +350,7 @@ export default {
     },
     supprimerEquipe: async (parent, { id }, { db, sequelize, user}) => {
       if (!user) {
-        throw new AuthenticationError(`Vous devez être logué pour enregistrer une équipe.`)
+        throw new AuthenticationError(`Vous devez être logué pour supprimer une équipe.`)
       }
       let transaction
       try {
@@ -392,7 +392,7 @@ export default {
         if (equipe.statut) {
           throw new ApolloError(`Impossible de supprimer une équipe validée.`)
         }
-        // vérification si l'utilisateur possède les droits pour modifier le score
+        // vérification si l'utilisateur possède les droits pour supprimer l'équipe
         if (user.role !== 'admin') {
           if (!find(equipe.Competition.organisateurs, o => {
             return o.dataValues.id === user.id
@@ -422,6 +422,87 @@ export default {
         await db.Athlete.destroy({ where: { id: equipe.enfant.id } })
         await db.Equipe.destroy({ where: { id: equipe.id } })
         pubsub.publish(EVENTS.EQUIPE.SUPPRIMEE, { suppressionEquipe })
+        return true
+      } catch (err) {
+        if (err) transaction.rollback()
+        throw err
+      }
+    },
+    planifierEquipe: async (parent, args, { db, sequelize, user}) => {
+      if (!user) {
+        throw new AuthenticationError(`Vous devez être logué pour planifier une équipe.`)
+      }
+      let transaction
+      try {
+        transaction = await sequelize.transaction()
+        const equipe = await db.Equipe.findOne({
+          where: { id:  args.id},
+          include: [
+            {
+              model: db.Competition,
+              include: [ { model: db.User, as: 'organisateurs'} ]
+            }
+          ]
+        })        
+        if (!equipe) {
+          throw new ApolloError(`L'équipe n'existe pas.`)
+        }
+        if (!equipe.Competition.statut) {
+          throw new ApolloError(`Impossible de mettre à jour une équipe d'une compétition fermée.`)
+        }
+        // vérification si l'utilisateur possède les droits pour planifier l'équipe
+        if (user.role !== 'admin' && !find(equipe.Competition.organisateurs, o => {
+          return o.dataValues.id === user.id
+        })) {
+          throw new ApolloError(`Vous ne disposez pas des droits pour effectuer cette opération.`)
+        }
+
+        // vérification si la planification est possible
+        const scoresEnfant = await db.Score.findAll({
+          where: { AthleteId: equipe.enfantId }
+        })
+        const scoresAdulte = await db.Score.findAll({
+          where: { AthleteId: equipe.adulteId }
+        })
+        for (const scores of [scoresEnfant, scoresAdulte]) {
+          for (const score of scores) {
+            if (score.ChallengeId === args.challenge && score.statut === 1 ) {
+              throw new ApolloError(`Cette équipe est en train de réaliser cette épreuve.`)
+            }
+            if (score.ChallengeId === args.challenge && score.statut === 2) {
+              throw new ApolloError(`Cette équipe a déjà réalisé cette épreuve.`)
+            }
+            if (score.ChallengeId !== args.challenge && score.statut === -1) {
+              throw new ApolloError(`Cette équipe est déjà planifiée sur une autre épreuve.`)
+            }
+            if (args.statut === -1) {
+              if (score.ChallengeId === args.challenge && score.statut === -1 ) {
+                throw new ApolloError(`Cette équipe est déjà planifiée sur cette épreuve.`)
+              }
+            } else if (args.statut === 0) {
+              if (score.ChallengeId === args.challenge && score.statut !== -1 ) {
+                throw new ApolloError(`Cette équipe n'est pas planifiée sur cette épreuve.`)
+              }
+            } else {
+              throw new ApolloError(`Impossible d'éffectuer la planification demandée.`)
+            }
+          }
+        }
+
+        await db.Score.update({ statut: args.statut }, {
+          where: {
+            ChallengeId: args.challenge,
+            [Op.or]: [{ AthleteId: equipe.enfantId }, { AthleteId: equipe.adulteId }] 
+          },
+          transaction
+        })
+
+        await transaction.commit()
+        const modificationEquipe = {
+          competition: equipe.Competition.id,
+          equipe: equipe.id
+        }
+        pubsub.publish(EVENTS.EQUIPE.MODIFICATION, { modificationEquipe })
         return true
       } catch (err) {
         if (err) transaction.rollback()

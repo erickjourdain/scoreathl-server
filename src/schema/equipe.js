@@ -9,6 +9,7 @@ extend type Query {
 extend type Mutation {
   creerEquipe(nom: String!, adulte: AthleteInputFull!, enfant: AthleteInputFull!, competition: ID!, pwd: String, avatar: Upload, etiquette: ID, statut: Boolean): Equipe!
   majEquipe(id: ID!, nom: String, adulte: AthleteInput, enfant: AthleteInput, avatar: Upload, etiquette: ID, statut: Boolean): Equipe!
+  planifierEquipe(id: ID!, challenge: ID!, statut: Int!): Boolean!
   supprimerEquipe(id: ID!): Boolean!
 }
 
