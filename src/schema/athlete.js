@@ -20,6 +20,7 @@ type Athlete {
 
 extend type Mutation {
   athleteResultat(athlete: ID!, resultat: ResultatInput!): Athlete!
+  athleteCategorie(athlete: ID!, annee: Int!, genre: String!): Athlete!
 }
 
 extend type Subscription {

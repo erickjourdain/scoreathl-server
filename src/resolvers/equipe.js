@@ -63,14 +63,14 @@ export default {
           adulte: object().shape({
             nom: string().required().min(3, `Le nom doit comporter au moins 3 caractères.`),
             prenom: string().required().min(3, `Le prénom doit comporter au moins 3 caractères.`),
-            annee: number().integer().positive().min(1950).max(2010).required(),
+            annee: number().integer().positive().min(1900).max(2010).required(),
             genre: string().oneOf(['M', 'F'], `Le genre n'est pas valide.`),
             avatar: mixed()
           }).required(),
           enfant: object().shape({
             nom: string().required().min(3, `Le nom doit comporter au moins 3 caractères.`),
             prenom: string().required().min(3, `Le prénom doit comporter au moins 3 caractères.`),
-            annee: number().integer().positive().min(2000).max(2015).required(),
+            annee: number().integer().positive().min(2000).max(2020).required(),
             genre: string().oneOf(['M', 'F'], `Le genre n'est pas valide.`),
             avatar: mixed()
           }).required(),
