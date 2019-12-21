@@ -5,6 +5,7 @@ import * as ATHLETE_EVENTS from './athlete'
 import * as USER_EVENTS from './user'
 import * as MESSAGE_EVENTS from './message'
 import * as CATEGORIE_EVENTS from './categorie'
+import * as COMPETITION_EVENTS from './competition'
 
 
 export const EVENTS = {
@@ -12,7 +13,8 @@ export const EVENTS = {
   ATHLETE: ATHLETE_EVENTS,
   USER: USER_EVENTS,
   MESSAGE: MESSAGE_EVENTS,
-  CATEGORIE: CATEGORIE_EVENTS
+  CATEGORIE: CATEGORIE_EVENTS,
+  COMPETITION: COMPETITION_EVENTS
 }
 
 export default new PubSub()

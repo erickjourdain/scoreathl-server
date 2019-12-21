@@ -1,8 +1,9 @@
 import { AuthenticationError, ApolloError } from 'apollo-server'
 import { object, string, boolean, date, array, mixed, number } from 'yup'
-import { forOwn, fill } from 'lodash'
+import { forOwn, fill, map } from 'lodash'
 import { Op } from 'sequelize'
 
+import pubsub, { EVENTS } from '../subscription'
 import { rolesOrAdmin, authorisedOrAdmin } from '../services/response'
 import hash from '../services/hash'
 import storeFS from '../services/store/storeFS'
@@ -73,6 +74,7 @@ export default {
         await competition.addOrganisateurs(organisateurs, { transaction })
         await competition.addChallenges(challenges, { transaction })
         await transaction.commit()
+        pubsub.publish(EVENTS.COMPETITION.MODIFICATION, true)
         return await db.Competition.findByPk(competition.id)
       } catch (err) {
         if (err) await transaction.rollback()
@@ -173,8 +175,10 @@ export default {
         throw err
       }
     },
-    delCompetition: async (parent, args, { db, user }) => {
+    delCompetition: async (parent, args, { db, sequelize, user }) => {
+      let transaction
       try {
+        transaction = await sequelize.transaction()
         if (!rolesOrAdmin(user, ['organisateur'])) {
           throw new AuthenticationError(`Vous ne disposez pas des droits nécessaires pour effectuer cette opération.`)
         }
@@ -182,17 +186,64 @@ export default {
           id: string().required()
         })
         await schema.validate(args)
-        const competition = await db.Competition.findByPk(args.id)
+        const competition = await db.Competition.findOne({
+          where: {id: args.id },
+          include: [ 
+            { model: db.Equipe }, 
+            { model: db.Challenge },
+            { model: db.Juge }, 
+            { model: db.User, as: 'organisateurs'} 
+          ]
+        })
         if (!competition) {
           throw new ApolloError(`La compétition n'existe pas.`)
         }
-        const equipes = competition.getEquipes()
-        if (!equipes) {
-          throw new ApolloError(`Impossible d'effacer une compétition avec des équipes inscrites.`)
+        if (competition.statut) {
+          throw new ApolloError(`Impossible de supprimer une compétition ouverte.`)
         }
-        await competition.destroy()
+        for (let i in competition.Equipes) {
+          const adulte = await db.Athlete.findOne({ 
+            where: { id: competition.Equipes[i].adulteId },
+            include: [{ model: db.Score }]
+          })
+          const enfant = await db.Athlete.findOne({ 
+            where: { id: competition.Equipes[i].enfantId },
+            include: [{ model: db.Score }]
+          })
+          await db.Score.destroy({ 
+            where: { id: map(adulte.Scores, 'id') },
+            transaction
+          })
+          await db.Score.destroy({ 
+            where: { id: map(enfant.Scores, 'id') },
+            transaction
+          })
+          await db.Athlete.destroy({ 
+            where: { [Op.or]: [ { id: adulte.id }, { id: enfant.id} ] },
+            transaction
+          })
+        }
+        await db.Equipe.destroy({ 
+          where: { id: map(competition.Equipes, 'id')},
+          transaction
+        })
+        await db.Challenge.destroy({ 
+          where: { id: map(competition.Challenges, 'id')},
+          transaction
+        })
+        await db.Juge.destroy({ 
+          where: { id: map(competition.Juges, 'id')},
+          transaction
+        })
+        await db.Competition.destroy({ 
+          where: { id: competition.id },
+          transaction
+        })
+        await transaction.commit()
+        pubsub.publish(EVENTS.COMPETITION.MODIFICATION, true)
         return true
       } catch (err) {
+        if (err) await transaction.rollback()
         throw err
       }
     }
@@ -206,6 +257,11 @@ export default {
     },
     challenges: (competition) => {
       return competition.getChallenges()
+    }
+  },
+  Subscription: {
+    modificationCompetitions: {
+      subscribe: () => pubsub.asyncIterator(EVENTS.COMPETITION.MODIFICATION)
     }
   }
 }

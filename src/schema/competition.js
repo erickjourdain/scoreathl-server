@@ -24,4 +24,8 @@ extend type Mutation {
   majCompetition(id: ID!, nom: String, date: Date, emplacement: String, image: Upload, statut: Boolean, pwd: String, organisateurs: [ID!], challenges: [ChallengeInput!]): Competition
   delCompetition(id: ID!): Boolean
 }
+
+extend type Subscription {
+  modificationCompetitions: Boolean!
+}
 `
