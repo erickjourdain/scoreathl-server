@@ -13,9 +13,9 @@
     "start": "nodemon --exec babel-node src/index.js",
     "debug": "babel-node --nolazy --inspect-brk=9229 src/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["apollo", "server", "scoreathl"],
+  "author": "erick jourdain <erickjourdain@free.fr",
+  "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.4.0",
     "@babel/preset-env": "^7.4.2",
