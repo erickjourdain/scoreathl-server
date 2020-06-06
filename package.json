@@ -33,7 +33,7 @@
     "@babel/node": "^7.2.2",
     "apollo-link-ws": "^1.0.17",
     "apollo-server": "^2.2.2",
-    "apollo-server-express": "^2.2.2",
+    "apollo-server-express": "^2.14.2",
     "babel-jest": "^24.5.0",
     "bcrypt": "https://github.com/kelektiv/node.bcrypt.js.git#master",
     "bluebird": "^3.5.3",
